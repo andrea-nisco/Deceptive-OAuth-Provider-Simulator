@@ -1,0 +1,36 @@
+{
+    "id": "myrealm",
+    "realm": "myrealm",
+    "enabled": true,
+    "displayName": "My Realm",
+    "users": [
+      {
+        "username": "user1",
+        "enabled": true,
+        "emailVerified": true,
+        "firstName": "User",
+        "lastName": "One",
+        "email": "user1@example.com",
+        "credentials": [
+          {
+            "type": "password",
+            "value": "password1",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["user"],
+        "clientRoles": {
+          "account": ["view-profile", "manage-account"]
+        }
+      }
+    ],
+    "roles": {
+      "realm": [
+        {
+          "name": "user",
+          "description": "User role"
+        }
+      ]
+    }
+  }
+  
