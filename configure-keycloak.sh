@@ -1,0 +1,1 @@
+/opt/jboss/keycloak/bin/kc.sh import --file /opt/jboss/fake-users.json

@@ -1,23 +1,24 @@
-# Utilizza l'immagine di base ufficiale di Keycloak
+FROM quay.io/keycloak/keycloak:latest as builder
+
+# Enable health and metrics support
+ENV KC_HEALTH_ENABLED=true
+ENV KC_METRICS_ENABLED=true
+
+# Configure a database vendor
+ENV KC_DB=postgres
+
+WORKDIR /opt/keycloak
+# for demonstration purposes only, please make sure to use proper certificates in production instead
+RUN keytool -genkeypair -storepass password -storetype PKCS12 -keyalg RSA -keysize 2048 -dname "CN=server" -alias server -ext "SAN:c=DNS:localhost,IP:127.0.0.1" -keystore conf/server.keystore
+RUN /opt/keycloak/bin/kc.sh build
+
 FROM quay.io/keycloak/keycloak:latest
+COPY --from=builder /opt/keycloak/ /opt/keycloak/
 
-# Imposta la variabile di ambiente per l'accesso automatico all'admin
-ENV KEYCLOAK_USER=admin
-ENV KEYCLOAK_PASSWORD=admin
-
-# Imposta l'hostname di Keycloak e la modalità di sviluppo
+# change these values to point to a running postgres instance
+ENV KC_DB=postgres
+ENV KC_DB_URL=<DBURL>
+ENV KC_DB_USERNAME=<DBUSERNAME>
+ENV KC_DB_PASSWORD=<DBPASSWORD>
 ENV KC_HOSTNAME=localhost
-ENV KC_HTTP_ENABLED=true
-
-# Copia il file del realm (ad esempio my-realm.json) nel container
-COPY ./my-realm.json /tmp/my-realm.json
-
-# Espone la porta su cui Keycloak ascolta
-EXPOSE 8080
-
-# Imposta il punto di ingresso e il comando di default
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
-
-# Importa il realm al momento dell'avvio del server e avvia in modalità sviluppo
-CMD ["start-dev", "--import-realm"]
-
