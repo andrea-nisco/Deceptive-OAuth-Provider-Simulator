@@ -2,6 +2,7 @@ import requests
 from requests import HTTPError
 from faker import Faker
 import random
+import json
 
 def create_group(access_token, group_name):
     group_url = f"{KEYCLOAK_URL}admin/realms/{REALM_NAME}/groups"
@@ -59,6 +60,21 @@ def assign_user_to_group(access_token, user_id, group_id):
     except HTTPError as e:
         print(f"Failed to assign user {user_id} to group {group_id}. Error: {e.response.text}")
 
+def create_oauth_client(access_token, client_data):
+    client_url = f"{KEYCLOAK_URL}admin/realms/{REALM_NAME}/clients"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.post(client_url, json=client_data, headers=headers)
+    try:
+        response.raise_for_status()
+        print(f"OAuth client created successfully")
+        return response.headers.get('Location').split('/')[-1]  # Get the ID of the created client
+    except HTTPError as e:
+        print(f"Failed to create OAuth client. Error: {e.response.text}")
+        return None
+
 KEYCLOAK_URL = 'http://localhost:8080/auth/'
 REALM_NAME = 'master'
 CLIENT_ID = 'admin-cli'
@@ -82,6 +98,31 @@ if CLIENT_SECRET:
 response = requests.post(token_url, data=token_data)
 response.raise_for_status()
 access_token = response.json()['access_token']
+
+client_data = {
+    'clientId': 'ilclient',
+    'enabled': True,
+    'publicClient': False,
+    'redirectUris': ['http://localhost:8081/*'],
+    'webOrigins': ['http://localhost:8081/'],
+    'protocol': 'openid-connect',
+    'standardFlowEnabled': True,
+    'implicitFlowEnabled': False,
+    'directAccessGrantsEnabled': True,
+    'attributes': {
+        'pkce.code.challenge.method': 'S256'
+    },
+    # Altre configurazioni...
+}
+
+
+client_id = create_oauth_client(access_token, client_data)
+
+if client_id:
+    print(f"Client OAuth configurato con successo: {client_id}")
+else:
+    print("Errore nella configurazione del client OAuth.")
+
 
 group_names = ['Group1', 'Group2', 'Group3', 'Test']
 group_ids = []
