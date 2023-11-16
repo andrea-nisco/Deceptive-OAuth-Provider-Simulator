@@ -1,8 +1,12 @@
+# docker-compose -f keycloack-postgres.yml up -d
+
 import requests
 from requests import HTTPError
 from faker import Faker
 import random
-import json
+
+KEYCLOAK_URL = 'http://localhost:8080/auth/'
+REALM_NAME = 'master'
 
 def create_group(access_token, group_name):
     group_url = f"{KEYCLOAK_URL}admin/realms/{REALM_NAME}/groups"
@@ -36,6 +40,7 @@ def create_group(access_token, group_name):
     except HTTPError as e:
         print(f"Failed to create group '{group_name}'. Error: {e.response.text}")
         return None
+    
 def create_user(access_token, user_data):
     user_url = f"{KEYCLOAK_URL}admin/realms/{REALM_NAME}/users"
     headers = {
@@ -49,7 +54,7 @@ def create_user(access_token, user_data):
     except HTTPError as e:
         print(f"Failed to create user. Error: {e.response.text}")
         return None
-
+    
 def assign_user_to_group(access_token, user_id, group_id):
     assign_url = f"{KEYCLOAK_URL}admin/realms/{REALM_NAME}/users/{user_id}/groups/{group_id}"
     headers = {'Authorization': f'Bearer {access_token}'}
@@ -74,85 +79,101 @@ def create_oauth_client(access_token, client_data):
     except HTTPError as e:
         print(f"Failed to create OAuth client. Error: {e.response.text}")
         return None
+    
+def get_user_input():
+    try:
+        num_users = int(input("Inserisci il numero di utenti fittizi da creare: "))
+    except ValueError:
+        print("Si prega di inserire un numero valido.")
+        return None, []
 
-KEYCLOAK_URL = 'http://localhost:8080/auth/'
-REALM_NAME = 'master'
-CLIENT_ID = 'admin-cli'
-USERNAME = 'admin'
-PASSWORD = 'Pa55w0rd'
-GRANT_TYPE = 'password'
-CLIENT_SECRET = 'JJcMHwA7Waq0g6DiGTCjLc9pVi90kfAm'
+    group_names = []
+    while True:
+        group_name = input("Inserisci il nome del gruppo (lascia vuoto per terminare): ")
+        if not group_name:
+            break
+        group_names.append(group_name)
 
-# Ottieni il token di accesso
-token_url = f"{KEYCLOAK_URL}realms/{REALM_NAME}/protocol/openid-connect/token"
-token_data = {
-    'client_id': CLIENT_ID,
-    'username': USERNAME,
-    'password': PASSWORD,
-    'grant_type': GRANT_TYPE,
-}
+    return num_users, group_names
 
-if CLIENT_SECRET:
-    token_data['client_secret'] = CLIENT_SECRET
+def main():
+    CLIENT_ID = 'admin-cli'
+    USERNAME = 'admin'
+    PASSWORD = 'Pa55w0rd'
+    GRANT_TYPE = 'password'
+    CLIENT_SECRET = 'JJcMHwA7Waq0g6DiGTCjLc9pVi90kfAm'
 
-response = requests.post(token_url, data=token_data)
-response.raise_for_status()
-access_token = response.json()['access_token']
+    token_url = f"{KEYCLOAK_URL}realms/{REALM_NAME}/protocol/openid-connect/token"
+    token_data = {
+        'client_id': CLIENT_ID,
+        'username': USERNAME,
+        'password': PASSWORD,
+        'grant_type': GRANT_TYPE,
+    }
 
-client_data = {
-    'clientId': 'ilclient',
-    'enabled': True,
-    'publicClient': False,
-    'redirectUris': ['http://localhost:8081/*'],
-    'webOrigins': ['http://localhost:8081/'],
-    'protocol': 'openid-connect',
-    'standardFlowEnabled': True,
-    'implicitFlowEnabled': False,
-    'directAccessGrantsEnabled': True,
-    'attributes': {
-        'pkce.code.challenge.method': 'S256'
-    },
-    # Altre configurazioni...
-}
+    if CLIENT_SECRET:
+        token_data['client_secret'] = CLIENT_SECRET
 
+    response = requests.post(token_url, data=token_data)
+    response.raise_for_status()
+    access_token = response.json()['access_token']
 
-client_id = create_oauth_client(access_token, client_data)
+    client_data = {
+        'clientId': 'ilclient',
+        'enabled': True,
+        'publicClient': False,
+        'redirectUris': ['http://localhost:8081/*'],
+        'webOrigins': ['http://localhost:8081/'],
+        'protocol': 'openid-connect',
+        'standardFlowEnabled': True,
+        'implicitFlowEnabled': False,
+        'directAccessGrantsEnabled': True,
+        'attributes': {
+            'pkce.code.challenge.method': 'S256'
+        },
+        # Altre configurazioni...
+    }
 
-if client_id:
-    print(f"Client OAuth configurato con successo: {client_id}")
-else:
-    print("Errore nella configurazione del client OAuth.")
+    client_id = create_oauth_client(access_token, client_data)
 
+    if client_id:
+        print(f"Client OAuth configurato con successo: {client_id}")
+    else:
+        print("Errore nella configurazione del client OAuth.")
 
-group_names = ['Group1', 'Group2', 'Group3', 'Test']
-group_ids = []
-for group_name in group_names:
-    group_id = create_group(access_token, group_name)
-    if group_id:
-        group_ids.append(group_id)
+    num_users, group_names = get_user_input()
 
-if len(group_ids) == len(group_names):
-    # Generazione e creazione di utenti fittizi
-    faker = Faker()
-    num_users = 10
+    if num_users is not None and group_names:
+        group_ids = []
+        for group_name in group_names:
+            group_id = create_group(access_token, group_name)
+            if group_id:
+                group_ids.append(group_id)
 
-    for _ in range(num_users):
-        first_name = faker.first_name()
-        last_name = faker.last_name()
-        user_data = {
-            'username': faker.user_name(),
-            'enabled': True,
-            'email': faker.email(),
-            'firstName': first_name,
-            'lastName': last_name,
-            'credentials': [{
-                'type': 'password',
-                'value': 'password',
-                'temporary': False
-            }]
-        }
-        user_id = create_user(access_token, user_data)
-        if user_id:
-            assign_user_to_group(access_token, user_id, random.choice(group_ids))
-else:
-    print("Error: Some groups could not be created or confirmed.")
+        if len(group_ids) == len(group_names):
+            faker = Faker()
+            for _ in range(num_users):
+                first_name = faker.first_name()
+                last_name = faker.last_name()
+                user_data = {
+                    'username': faker.user_name(),
+                    'enabled': True,
+                    'email': faker.email(),
+                    'firstName': first_name,
+                    'lastName': last_name,
+                    'credentials': [{
+                        'type': 'password',
+                        'value': 'password',
+                        'temporary': False
+                    }]
+                }
+                user_id = create_user(access_token, user_data)
+                if user_id:
+                    assign_user_to_group(access_token, user_id, random.choice(group_ids))
+        else:
+            print("Errore: Alcuni gruppi non possono essere creati o confermati.")
+    else:
+        print("Input non valido. Assicurati di inserire il numero di utenti e almeno un nome di gruppo.")
+
+if __name__ == "__main__":
+    main()

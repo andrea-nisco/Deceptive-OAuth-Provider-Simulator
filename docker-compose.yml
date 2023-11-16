@@ -5,7 +5,7 @@ services:
     image: quay.io/keycloak/keycloak:latest
     environment:
       KEYCLOAK_USER: admin
-      KEYCLOAK_PASSWORD: admin
+      KEYCLOAK_PASSWORD: password
       DB_VENDOR: POSTGRES
       DB_ADDR: postgres
       DB_DATABASE: keycloak
