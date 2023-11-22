@@ -1,6 +1,9 @@
+import getpass
+import subprocess
+
 def create_docker_compose():
     keycloak_user = input("Inserisci l'username per l'amministratore Keycloak: ")
-    keycloak_password = input("Inserisci la password per l'amministratore Keycloak: ")
+    keycloak_password = getpass.getpass("Inserisci la password per l'amministratore Keycloak: ")
 
     docker_compose_content = f"""version: '3'
 
@@ -37,9 +40,9 @@ services:
     with open('keycloack-postgres.yml', 'w') as file:
         file.write(docker_compose_content)
 
+    # Esegui il comando 'docker-compose -f keycloack-postgres.yml up -d'
+    subprocess.run(["docker-compose", "-f", "keycloack-postgres.yml", "up", "-d"])
+
 if __name__ == "__main__":
     create_docker_compose()
-    print("File 'keycloack-postgres.yml' creato con successo.")
-    
-
-    
+    print("Servizio avviato. Connettiti su http://localhost:8080")

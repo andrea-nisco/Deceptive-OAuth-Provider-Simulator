@@ -1,9 +1,15 @@
-# docker-compose -f keycloack-postgres.yml up -d
-
 import requests
 from requests import HTTPError
 from faker import Faker
 import random
+import yaml
+
+def load_config():
+    with open('keycloack-postgres.yml', 'r') as file:
+        config = yaml.safe_load(file)
+        keycloak_user = config['services']['keycloak']['environment']['KEYCLOAK_USER']
+        keycloak_password = config['services']['keycloak']['environment']['KEYCLOAK_PASSWORD']
+        return keycloak_user, keycloak_password
 
 KEYCLOAK_URL = 'http://localhost:8080/auth/'
 REALM_NAME = 'master'
@@ -98,28 +104,26 @@ def get_user_input():
 
 def main():
     CLIENT_ID = 'admin-cli'
-    USERNAME = 'admin'
-    PASSWORD = 'Pa55w0rd'
     GRANT_TYPE = 'password'
-    CLIENT_SECRET = 'JJcMHwA7Waq0g6DiGTCjLc9pVi90kfAm'
+
+    keycloak_user, keycloak_password = load_config()
 
     token_url = f"{KEYCLOAK_URL}realms/{REALM_NAME}/protocol/openid-connect/token"
     token_data = {
         'client_id': CLIENT_ID,
-        'username': USERNAME,
-        'password': PASSWORD,
+        'username': keycloak_user,
+        'password': keycloak_password,
         'grant_type': GRANT_TYPE,
     }
-
-    if CLIENT_SECRET:
-        token_data['client_secret'] = CLIENT_SECRET
 
     response = requests.post(token_url, data=token_data)
     response.raise_for_status()
     access_token = response.json()['access_token']
 
+    """
+    # Parte relativa alla creazione del client OAuth
     client_data = {
-        'clientId': 'ilclient',
+        'clientId': 'client',
         'enabled': True,
         'publicClient': False,
         'redirectUris': ['http://localhost:8081/*'],
@@ -140,6 +144,7 @@ def main():
         print(f"Client OAuth configurato con successo: {client_id}")
     else:
         print("Errore nella configurazione del client OAuth.")
+    """
 
     num_users, group_names = get_user_input()
 
