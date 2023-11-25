@@ -1,18 +1,18 @@
 import requests
 from requests import HTTPError
 from faker import Faker
+import getpass
 import random
-import yaml
-
-def load_config():
-    with open('keycloack-postgres.yml', 'r') as file:
-        config = yaml.safe_load(file)
-        keycloak_user = config['services']['keycloak']['environment']['KEYCLOAK_USER']
-        keycloak_password = config['services']['keycloak']['environment']['KEYCLOAK_PASSWORD']
-        return keycloak_user, keycloak_password
+import hvac
 
 KEYCLOAK_URL = 'http://localhost:8080/auth/'
 REALM_NAME = 'master'
+
+def get_secret_from_vault(token, secret_path, key):
+    """Recupera un segreto da Vault."""
+    client = hvac.Client(url='http://127.0.0.1:8200', token=token)
+    read_response = client.secrets.kv.v2.read_secret_version(path=secret_path)
+    return read_response['data']['data'][key]
 
 def create_group(access_token, group_name):
     group_url = f"{KEYCLOAK_URL}admin/realms/{REALM_NAME}/groups"
@@ -106,7 +106,13 @@ def main():
     CLIENT_ID = 'admin-cli'
     GRANT_TYPE = 'password'
 
-    keycloak_user, keycloak_password = load_config()
+    token = getpass.getpass("Inserisci il Root Token di Vault: ")
+    keycloak_user = get_secret_from_vault(token, 'application_secrets', 'keycloak_user') 
+    keycloak_password = get_secret_from_vault(token, 'application_secrets', 'keycloak_password')
+
+    if keycloak_user is None or keycloak_password is None:
+        print("Impossibile recuperare le credenziali da Vault. Verifica la configurazione.")
+        return
 
     token_url = f"{KEYCLOAK_URL}realms/{REALM_NAME}/protocol/openid-connect/token"
     token_data = {

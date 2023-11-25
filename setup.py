@@ -20,36 +20,31 @@ def is_docker_running():
     except subprocess.CalledProcessError:
         return False
 
-
-def create_secret_in_vault(token):
-    """ Crea un segreto in Vault. """
-    print("Creando un segreto in Vault...")
+def save_secrets_in_vault(token):
+    """ Salva i dati sensibili in Vault. """
     client = hvac.Client(url='http://127.0.0.1:8200', token=token)
-    client.secrets.kv.v2.create_or_update_secret(
-        path='keycloak_postgres',
-        secret={'password': 'YourSecurePassword'}
-    )
-    print("Segreto creato con successo.")
+    
+    keycloak_user = input("Inserisci l'username per l'amministratore Keycloak: ")
+    keycloak_password = getpass.getpass("Inserisci la password per l'amministratore Keycloak: ")
+    postgres_password = getpass.getpass("Inserisci la password per l'utente PostgreSQL: ")
 
-def get_vault_secret(token, secret_path, key):
+    client.secrets.kv.v2.create_or_update_secret(
+        path='application_secrets',
+        secret={
+            'keycloak_user': keycloak_user,
+            'keycloak_password': keycloak_password,
+            'postgres_password': postgres_password
+        }
+    )
+
+def get_secret_from_vault(token, secret_path, key):
     """Recupera un segreto da Vault."""
-    print(f"Recuperando il segreto da Vault: {secret_path}")
     client = hvac.Client(url='http://127.0.0.1:8200', token=token)
     read_response = client.secrets.kv.v2.read_secret_version(path=secret_path)
     return read_response['data']['data'][key]
 
-def set_env_variables(postgres_password):
-    """ Imposta le variabili d'ambiente per le credenziali. """
-    keycloak_user = input("Inserisci l'username per l'amministratore Keycloak: ")
-    keycloak_password = getpass.getpass("Inserisci la password per l'amministratore Keycloak: ")
-
-    os.environ['POSTGRES_PASSWORD'] = postgres_password
-    os.environ['KEYCLOAK_USER'] = keycloak_user
-    os.environ['KEYCLOAK_PASSWORD'] = keycloak_password
-
-def create_docker_compose():
-    """ Crea il file docker-compose.yml. """
-    print("Creando il file docker-compose.yml...")
+def create_docker_compose(token):
+    """ Crea il file docker-compose.yml sostituendo le variabili con i segreti da Vault. """
     docker_compose_content = """version: '3'
 volumes:
   postgres_data:
@@ -81,12 +76,20 @@ services:
         - postgres
 """
 
+    client = hvac.Client(url='http://127.0.0.1:8200', token=token)
+    keycloak_user = get_secret_from_vault(token, 'application_secrets', 'keycloak_user')
+    keycloak_password = get_secret_from_vault(token, 'application_secrets', 'keycloak_password')
+    postgres_password = get_secret_from_vault(token, 'application_secrets', 'postgres_password')
+
+    os.environ['POSTGRES_PASSWORD'] = postgres_password
+    os.environ['KEYCLOAK_USER'] = keycloak_user
+    os.environ['KEYCLOAK_PASSWORD'] = keycloak_password
+
     with open('keycloak-postgres.yml', 'w') as file:
         file.write(docker_compose_content)
     print("File docker-compose.yml creato con successo.")
 
 def main():
-    """ Funzione principale per eseguire il setup. """
     if not is_vault_running():
         print("Vault non è in esecuzione. Per favore esegui il comando 'vault server -dev' e riprova.")
         return
@@ -94,16 +97,16 @@ def main():
         print("Docker non è in esecuzione. Assicurati che Docker sia avviato e riprova.")
         return
 
-    token = input("Inserisci il Root Token di Vault: ")
+    token = getpass.getpass("Inserisci il Root Token di Vault: ")
     os.environ['VAULT_ADDR'] = 'http://127.0.0.1:8200'
     os.environ['VAULT_TOKEN'] = token
-
-    create_secret_in_vault(token)
-    postgres_password = get_vault_secret(token, 'keycloak_postgres', 'password')
     
-    set_env_variables(postgres_password)
-    create_docker_compose()
-
+    save_secrets_in_vault(token)
+    
+    create_docker_compose(token)
+    
+    postgres_password = get_secret_from_vault(token, 'application_secrets', 'postgres_password')
+    
     print("Avviando i servizi con Docker Compose...")
     subprocess.run(["docker-compose", "-f", "keycloak-postgres.yml", "up", "-d"])
     print("Servizi avviati.")
