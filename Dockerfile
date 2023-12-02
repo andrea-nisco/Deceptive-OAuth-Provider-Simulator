@@ -1,24 +1,35 @@
-FROM quay.io/keycloak/keycloak:latest as builder
+FROM alpine:latest
 
-# Enable health and metrics support
-ENV KC_HEALTH_ENABLED=true
-ENV KC_METRICS_ENABLED=true
+# Installa OpenJDK 17, wget, file, PostgreSQL, e Python
+RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip
 
-# Configure a database vendor
-ENV KC_DB=postgres
+# Installa Psycopg2 e Faker con pip
+RUN pip3 install faker requests
 
-WORKDIR /opt/keycloak
-# for demonstration purposes only, please make sure to use proper certificates in production instead
-RUN keytool -genkeypair -storepass password -storetype PKCS12 -keyalg RSA -keysize 2048 -dname "CN=server" -alias server -ext "SAN:c=DNS:localhost,IP:127.0.0.1" -keystore conf/server.keystore
-RUN /opt/keycloak/bin/kc.sh build
+# Scarica Keycloak versione 23.0.1
+RUN wget https://github.com/keycloak/keycloak/releases/download/23.0.1/keycloak-23.0.1.tar.gz -O /tmp/keycloak.tar.gz
 
-FROM quay.io/keycloak/keycloak:latest
-COPY --from=builder /opt/keycloak/ /opt/keycloak/
+# Verifica il file scaricato e estrai Keycloak
+RUN ls -l /tmp/keycloak.tar.gz \
+    && file /tmp/keycloak.tar.gz \
+    && tar -xzf /tmp/keycloak.tar.gz -C /opt \
+    && rm /tmp/keycloak.tar.gz
 
-# change these values to point to a running postgres instance
-ENV KC_DB=postgres
-ENV KC_DB_URL=<DBURL>
-ENV KC_DB_USERNAME=<DBUSERNAME>
-ENV KC_DB_PASSWORD=<DBPASSWORD>
-ENV KC_HOSTNAME=localhost
-ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
+# Crea la directory necessaria per PostgreSQL
+RUN mkdir -p /run/postgresql && chown -R postgres:postgres /run/postgresql
+RUN mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql/data
+
+# Copia lo script entrypoint.sh nell'immagine
+COPY entrypoint.sh /entrypoint.sh
+
+# Copia lo script Python per popolare il database
+COPY main.py /main.py
+
+RUN chmod +x /entrypoint.sh
+
+# Espone la porta 8080 per Keycloak
+EXPOSE 8080
+
+# Imposta lo script entrypoint.sh come punto di ingresso
+ENTRYPOINT ["/entrypoint.sh"]
+
