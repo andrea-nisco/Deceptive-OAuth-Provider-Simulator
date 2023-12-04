@@ -1,4 +1,5 @@
 from faker import Faker
+from tqdm import tqdm
 import os
 import requests
 import json
@@ -14,6 +15,14 @@ KEYCLOAK_GRANT_TYPE = "password"
 # Recupera le credenziali dell'amministratore dalle variabili d'ambiente
 KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")  # Default a "admin" se non impostato
 KEYCLOAK_ADMIN_PASSWORD = os.environ.get("KEYCLOAK_ADMIN_PASSWORD", "password")  # Default a "password" se non impostato
+
+def clear_screen():
+    # Windows
+    if os.name == 'nt':
+        _ = os.system('cls')
+    # MacOS/Linux
+    else:
+        _ = os.system('clear')
 
 # Funzione per ottenere il token di accesso
 def get_token():
@@ -92,13 +101,16 @@ def create_n_random_users(n):
         print("Impossibile ottenere il token di accesso.")
         return
 
-    utenti_creati = 0
-    while utenti_creati < n:
-        username, email, password = generate_random_user_data()
-        status_code = create_user(token, username, email, password)
-        if status_code == 201:
-            utenti_creati += 1
-            print(f"Utente {username} creato con successo.")
+    created = 0
+    with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
+        while created < n:
+            username, email, password = generate_random_user_data()
+            status_code = create_user(token, username, email, password)
+            if status_code == 201:
+                created += 1
+                pbar.update(1)  # Aggiorna il contatore solo se l'utente è stato creato con successo
+
+    print(f"Utenti creati: {created}/{n}")
 
 # Funzione per ottenere tutti gli utenti
 def get_all_users(token):
@@ -165,9 +177,10 @@ def assign_user_to_group(access_token, user_id, group_id):
     response = requests.put(assign_url, headers=headers)
     try:
         response.raise_for_status()
-        print(f"User {user_id} assigned to group {group_id} successfully")
+        #print(f"User {user_id} assigned to group {group_id} successfully")
     except HTTPError as e:
-        print(f"Failed to assign user {user_id} to group {group_id}. Error: {e.response.text}")
+        #print(f"Failed to assign user {user_id} to group {group_id}. Error: {e.response.text}")
+        return None
 
 # Funzione per creare gruppi e assegnare utenti in modo casuale
 def create_groups_and_assign_users(group_names, num_users_to_assign):
@@ -196,8 +209,7 @@ def create_groups_and_assign_users(group_names, num_users_to_assign):
     group_distribution = {group_name: 0 for group_name in group_names}
 
     # Assegna gli utenti ai gruppi in modo casuale
-    for i in range(num_users_to_assign):
-        user = users[i]
+    for user in tqdm(users[:num_users_to_assign], desc="Assegnazione gruppi", unit="utente"):
         user_id = user['id']
         group_name, group_id = random.choice(list(group_ids.items()))
         assign_user_to_group(token, user_id, group_id)
@@ -210,11 +222,13 @@ def create_groups_and_assign_users(group_names, num_users_to_assign):
 # Funzione per mostrare il menu e gestire le scelte dell'utente
 def main_menu():
     while True:
+        clear_screen()  # Pulisce lo schermo all'inizio di ogni iterazione
         print("\nMenu:")
         print("3. Crea gruppi e assegna utenti")
         print("2. Crea n utenti casuali")
         print("1. Crea un singolo utente")
         print("0. Esci")
+        print("\n")
         scelta = input("Inserisci la tua scelta: ")
 
         if scelta == "3":
@@ -263,6 +277,20 @@ def main_menu():
         else:
             print("Scelta non valida.")
 
+        # Attendi un input dell'utente prima di pulire lo schermo
+        input("\nPremi Invio per continuare...")
+
 # Esecuzione del menu principale
 if __name__ == "__main__":
+    clear_screen()  # Pulisce lo schermo prima di mostrare il menu la prima volta
     main_menu()
+
+
+"""
+carte di credio
+posizione / indirizzo abitativo
+stato sociale ed economico
+età
+codice fiscale
+stato sui servizi che la persona utilizza (enel, vodafone, ecc)
+"""

@@ -4,7 +4,7 @@ FROM alpine:latest
 RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip
 
 # Installa Psycopg2 e Faker con pip
-RUN pip3 install faker requests
+RUN pip3 install faker requests tqdm
 
 # Scarica Keycloak versione 23.0.1
 RUN wget https://github.com/keycloak/keycloak/releases/download/23.0.1/keycloak-23.0.1.tar.gz -O /tmp/keycloak.tar.gz
@@ -32,4 +32,3 @@ EXPOSE 8080
 
 # Imposta lo script entrypoint.sh come punto di ingresso
 ENTRYPOINT ["/entrypoint.sh"]
-
