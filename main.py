@@ -9,6 +9,7 @@ import random
 KEYCLOAK_URL = "http://0.0.0.0:8080"  # Assicurati che questo indirizzo sia corretto
 KEYCLOAK_REALM = "master"
 KEYCLOAK_CLIENT_ID = "admin-cli"
+KEYCLOAK_GRANT_TYPE = "password"
 
 # Recupera le credenziali dell'amministratore dalle variabili d'ambiente
 KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")  # Default a "admin" se non impostato
@@ -22,7 +23,7 @@ def get_token():
             "client_id": KEYCLOAK_CLIENT_ID,
             "username": KEYCLOAK_ADMIN_USER,
             "password": KEYCLOAK_ADMIN_PASSWORD,
-            "grant_type": "password"
+            "grant_type": KEYCLOAK_GRANT_TYPE
         }
         response = requests.post(url, data=data)
         response.raise_for_status()
@@ -32,7 +33,7 @@ def get_token():
         print(f"Errore durante l'ottenimento del token: {e}")
         return None
 
-# Funzione per generare dati casuali per un utente
+# Funzione per generare dati casuali per un utente con email reale
 def generate_random_user_data():
     fake = Faker()
 
@@ -81,8 +82,47 @@ def create_user(token, username, email, password):
         response.raise_for_status()
         return response.status_code
     except requests.exceptions.RequestException as e:
-        print(f"Errore durante la creazione dell'utente: {e}")
+        #print(f"Errore durante la creazione dell'utente: {e}")
         return None
+    
+# Funzione per creare n utenti casuali
+def create_n_random_users(n):
+    token = get_token()
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    utenti_creati = 0
+    while utenti_creati < n:
+        username, email, password = generate_random_user_data()
+        status_code = create_user(token, username, email, password)
+        if status_code == 201:
+            utenti_creati += 1
+            print(f"Utente {username} creato con successo.")
+
+# Funzione per ottenere tutti gli utenti
+def get_all_users(token):
+    users = []
+    users_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    page = 0
+    while True:
+        params = {'first': page * 100, 'max': 100}  # 100 è il numero di utenti per pagina
+        response = requests.get(users_url, headers=headers, params=params)
+        if response.status_code == 200:
+            page_users = response.json()
+            if not page_users:
+                break  # Interrompe il ciclo se non ci sono più utenti
+            # Filtra l'utente "admin"
+            page_users = [user for user in page_users if user['username'] != KEYCLOAK_ADMIN_USER]
+            users.extend(page_users)
+            page += 1
+        else:
+            print("Errore nell'ottenere gli utenti.")
+            return None
+
+    return users
 
 # Funzione che crea un singolo gruppo
 def create_group(access_token, group_name):
@@ -130,7 +170,7 @@ def assign_user_to_group(access_token, user_id, group_id):
         print(f"Failed to assign user {user_id} to group {group_id}. Error: {e.response.text}")
 
 # Funzione per creare gruppi e assegnare utenti in modo casuale
-def create_groups_and_assign_users(group_names):
+def create_groups_and_assign_users(group_names, num_users_to_assign):
     token = get_token()
     if not token:
         print("Impossibile ottenere il token di accesso.")
@@ -142,16 +182,30 @@ def create_groups_and_assign_users(group_names):
         if group_id:
             group_ids[group_name] = group_id
 
-    # Ottieni tutti gli utenti
-    users_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(users_url, headers=headers)
-    if response.status_code == 200:
-        users = response.json()
-        for user in users:
-            user_id = user['id']
-            group_name, group_id = random.choice(list(group_ids.items()))
-            assign_user_to_group(token, user_id, group_id)
+    users = get_all_users(token)
+    if users is None:
+        return
+
+    # Assicurati che il numero di utenti da assegnare non sia maggiore del totale disponibile
+    num_users_to_assign = min(num_users_to_assign, len(users))
+
+    # Mescola casualmente la lista degli utenti
+    random.shuffle(users)
+
+    # Dizionario per tenere traccia della distribuzione degli utenti nei gruppi
+    group_distribution = {group_name: 0 for group_name in group_names}
+
+    # Assegna gli utenti ai gruppi in modo casuale
+    for i in range(num_users_to_assign):
+        user = users[i]
+        user_id = user['id']
+        group_name, group_id = random.choice(list(group_ids.items()))
+        assign_user_to_group(token, user_id, group_id)
+        group_distribution[group_name] += 1
+
+    # Stampa la distribuzione degli utenti nei gruppi
+    for group_name, count in group_distribution.items():
+        print(f"{group_name}: {count} utenti")
 
 # Funzione per mostrare il menu e gestire le scelte dell'utente
 def main_menu():
@@ -164,26 +218,31 @@ def main_menu():
         scelta = input("Inserisci la tua scelta: ")
 
         if scelta == "3":
-            numero_gruppi = int(input("Inserisci il numero di gruppi da creare: "))
-            group_names = []
-            for i in range(numero_gruppi):
-                group_name = input(f"Inserisci il nome per il gruppo {i+1}: ")
-                group_names.append(group_name)
-            create_groups_and_assign_users(group_names)
+            token = get_token()
+            if token:
+                all_users = get_all_users(token)
+                if all_users:
+                    total_users = len(all_users)
+                    print(f"Numero totale di utenti nel database: {total_users}")
+                    while True:  # Aggiungi un ciclo per controllare l'input dell'utente
+                        num_users_to_assign = int(input("Quanti utenti vuoi distribuire nei gruppi?: "))
+                        if num_users_to_assign <= total_users:
+                            break  # L'input è valido, esci dal ciclo
+                        else:
+                            print(f"Errore: hai inserito un numero maggiore del totale di utenti disponibili ({total_users}). Riprova.")
+
+                    num_gruppi = int(input("Inserisci il numero di gruppi da creare: "))
+                    group_names = []
+                    for i in range(num_gruppi):
+                        group_name = input(f"Inserisci il nome per il gruppo {i+1}: ")
+                        group_names.append(group_name)
+                    create_groups_and_assign_users(group_names, num_users_to_assign)
+            else:
+                print("Impossibile ottenere il token di accesso.")
 
         elif scelta == "2":
             numero_utenti = int(input("Con quanti utenti vuoi popolare il database?: "))
-            token = get_token()
-            if token:
-                for _ in range(numero_utenti):
-                    username, email, password = generate_random_user_data()
-                    status_code = create_user(token, username, email, password)
-                    if status_code == 201:
-                        print(f"Utente {username} creato con successo.")
-                    else:
-                        print(f"Errore nella creazione dell'utente {username}. Codice di risposta: {status_code}")
-            else:
-                print("Impossibile ottenere il token di accesso.")
+            create_n_random_users(numero_utenti)
         
         elif scelta == "1":
             username = input("Inserisci il nome utente: ")
