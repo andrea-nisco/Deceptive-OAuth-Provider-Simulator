@@ -5,6 +5,7 @@ import requests
 import json
 from requests.exceptions import HTTPError
 import random
+import datetime
 
 # Configura l'URL del server Keycloak
 KEYCLOAK_URL = "http://0.0.0.0:8080"  # Assicurati che questo indirizzo sia corretto
@@ -15,6 +16,19 @@ KEYCLOAK_GRANT_TYPE = "password"
 # Recupera le credenziali dell'amministratore dalle variabili d'ambiente
 KEYCLOAK_ADMIN_USER = os.environ.get("KEYCLOAK_ADMIN", "admin")  # Default a "admin" se non impostato
 KEYCLOAK_ADMIN_PASSWORD = os.environ.get("KEYCLOAK_ADMIN_PASSWORD", "password")  # Default a "password" se non impostato
+
+# Classe User
+class User:
+    def __init__(self, username, email, password, first_name, last_name, birth_date, gender, birth_place, cf):
+        self.username = username
+        self.email = email
+        self.password = password
+        self.first_name = first_name
+        self.last_name = last_name
+        self.birth_date = birth_date
+        self.gender = gender
+        self.birth_place = birth_place
+        self.cf = cf
 
 def clear_screen():
     # Windows
@@ -42,7 +56,106 @@ def get_token():
         print(f"Errore durante l'ottenimento del token: {e}")
         return None
 
+def generate_username(first_name, last_name, birth_date):
+    fake = Faker('it_IT')
+    birth_year = birth_date.strftime("%Y")
+    birth_month_day = birth_date.strftime("%m%d")
+    random_book_title = fake.word().lower()
+    random_game = fake.word().lower()
+    random_color = fake.color_name().lower().replace(" ", "")
+    random_city = fake.city().lower().replace(" ", "")
+    random_country = fake.country().lower().replace(" ", "")
+
+    # Definisci 30 strategie diverse per la creazione dell'username
+    strategies = [
+        lambda: f"{first_name}.{last_name}",
+        lambda: f"{last_name}_{first_name}",
+        lambda: f"{first_name[0]}{last_name}{birth_year}",
+        lambda: f"{first_name}{birth_month_day}",
+        lambda: f"{last_name[:3]}{first_name[:2]}{birth_year[-2:]}",
+        lambda: f"{random_book_title}{last_name[:3]}",
+        lambda: f"{first_name}_{random_game}",
+        lambda: f"{random_game}{birth_year}",
+        lambda: f"{random_color}{last_name[0]}{birth_year[-2:]}",
+        lambda: f"{first_name}{random_country[:3]}",
+        lambda: f"{random_city}_{first_name[0]}{last_name[0]}",
+        lambda: f"{birth_year}{random_book_title}",
+        lambda: f"{last_name}_{random_color}",
+        lambda: f"{random_game[0:3]}_{birth_month_day}",
+        lambda: f"{last_name[0:3]}_{random_city}",
+        lambda: f"{random_country}_{birth_year}",
+        lambda: f"{birth_month_day}_{random_game}",
+        lambda: f"{random_color}{birth_year}",
+        lambda: f"{first_name}_{random_country[:3]}",
+        lambda: f"{last_name[0]}{random_city[0:3]}{birth_year}",
+        lambda: f"{random_book_title[0:3]}_{random_country[0:3]}",
+        lambda: f"{first_name[0]}{random_color[0:3]}",
+        lambda: f"{last_name}_{random_game[0:3]}",
+        lambda: f"{random_city[0:3]}{birth_month_day}",
+        lambda: f"{random_country[0:3]}_{first_name}"
+    ]
+
+    # Scegli una strategia in modo casuale e applicala
+    return random.choice(strategies)()
+
+def genera_consonanti(stringa):
+    consonanti = ''.join([c for c in stringa.upper() if c not in 'AEIOU'])
+    return consonanti[:3] if len(consonanti) >= 3 else consonanti
+
+def genera_codice_fiscale(last_name, first_name, gender, birth_date, birth_place):
+    # Gestione cognome e nome
+    codice = genera_consonanti(last_name).ljust(3, 'X')
+    codice += genera_consonanti(first_name).ljust(3, 'X')
+
+    # Gestione data di nascita e genere
+    birth_date = datetime.datetime.strptime(birth_date, "%d/%m/%Y")
+    codice += str(birth_date.year)[-2:]
+    codice += 'ABCDEHLMPRST'[birth_date.month - 1]
+    codice += str(birth_date.day + (40 if gender.upper() == 'F' else 0)).zfill(2)
+
+    # Gestione luogo di nascita (fittizio)
+    codice += ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=4))
+
+    return codice
+
 # Funzione per generare dati casuali per un utente con email reale
+def generate_random_user_data():
+    fake = Faker('it_IT')
+
+    # Genera dati personali
+    first_name = fake.first_name()
+    last_name = fake.last_name()
+    birth_date = fake.date_of_birth()
+    gender = random.choice(["M", "F"])
+    birth_place = fake.city()
+
+    # Genera il codice fiscale
+    cf = genera_codice_fiscale(last_name, first_name, gender, birth_date.strftime("%d/%m/%Y"), birth_place)
+    
+    # Genera l'username per l'account
+    account_username = generate_username(first_name, last_name, birth_date) + str(random.randint(10, 99))
+
+    # Dizionario di provider di email fittizi
+    fake_email_providers = [
+    'gmail.com', 'libero.it', 'outlook.com', 'virgilio.it', 'hotmail.it', 'msn.com',
+    'tiscali.it', 'alice.it', 'email.it', 'icloud.com', 'yahoo.it', 'sky.com',
+    'poste.it', 'tim.it', 'me.com', 'aol.com', 'mail.com', 'proton.me', 
+    'inbox.com', 'hotmail.com', 'live.it', 'yahoo.com', 'bol.com.br',
+    'fastwebnet.it', 'tin.it', 'aruba.it', 'pec.it', 'teletu.it', 'mac.com',
+    # Aggiungi altri provider comuni o specifici per l'Italia
+]
+
+    # Genera l'username per l'email
+    email_username = generate_username(first_name, last_name, birth_date) + str(random.randint(10, 99))
+    email_provider = random.choice(fake_email_providers)
+    email = f"{email_username}@{email_provider}"
+
+    # Genera una password
+    password = fake.password()
+
+    return User(account_username, email, password, first_name, last_name, birth_date.strftime("%d/%m/%Y"), gender, birth_place, cf)
+
+"""
 def generate_random_user_data():
     fake = Faker()
 
@@ -71,10 +184,17 @@ def generate_random_user_data():
     # Genera una password
     password = fake.password()
 
-    return username, email, password
+    first_name = fake.first_name()
+    last_name = fake.last_name()
+    birth_date = fake.date_of_birth().strftime("%d-%m-%Y")
+    gender = random.choice(["Male", "Female"])
+    birth_place = fake.city()
+
+    return User(username, email, password, first_name, last_name, birth_date, gender, birth_place)
+"""
 
 # Funzione per creare un nuovo utente
-def create_user(token, username, email, password):
+def create_user(token, user):
     try:
         url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
         headers = {
@@ -82,10 +202,19 @@ def create_user(token, username, email, password):
             "Content-Type": "application/json"
         }
         data = {
-            "username": username,
-            "email": email,
+            "username": user.username,
+            "email": user.email,
             "enabled": True,
-            "credentials": [{"type": "password", "value": password, "temporary": False}]
+            "credentials": [{"type": "password", "value": user.password, "temporary": False}],
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            # attributi personalizzati:
+            "attributes": {
+                "Data Di Nascita": user.birth_date,
+                "Genere": user.gender,
+                "Luogo Di Nascita": user.birth_place,
+                "Codice Fiscale": user.cf
+            }
         }
         response = requests.post(url, headers=headers, data=json.dumps(data))
         response.raise_for_status()
@@ -104,8 +233,8 @@ def create_n_random_users(n):
     created = 0
     with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
         while created < n:
-            username, email, password = generate_random_user_data()
-            status_code = create_user(token, username, email, password)
+            user = generate_random_user_data()
+            status_code = create_user(token, user)
             if status_code == 201:
                 created += 1
                 pbar.update(1)  # Aggiorna il contatore solo se l'utente è stato creato con successo

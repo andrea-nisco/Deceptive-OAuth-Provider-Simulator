@@ -3,7 +3,7 @@ FROM alpine:latest
 # Installa OpenJDK 17, wget, file, PostgreSQL, e Python
 RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip
 
-# Installa Psycopg2 e Faker con pip
+# Installa le librerie necessarie
 RUN pip3 install faker requests tqdm
 
 # Scarica Keycloak versione 23.0.1
