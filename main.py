@@ -6,6 +6,8 @@ import json
 from requests.exceptions import HTTPError
 import random
 import datetime
+import jwt  # Libreria PyJWT
+import time
 
 # Configura l'URL del server Keycloak
 KEYCLOAK_URL = "http://0.0.0.0:8080"  # Assicurati che questo indirizzo sia corretto
@@ -56,8 +58,26 @@ def get_token():
         print(f"Errore durante l'ottenimento del token: {e}")
         return None
 
-def generate_username(first_name, last_name, birth_date):
-    fake = Faker('it_IT')
+# Funzione per rinnovare il token di accesso se scade
+def token_scaduto(token):
+    try:
+        # Decodifica il token per ottenere il payload
+        # Non è necessario verificare la firma del token in questo caso
+        payload = jwt.decode(token, options={"verify_signature": False})
+
+        # Ottieni il timestamp di scadenza dal payload
+        exp = payload.get("exp")
+
+        # Confronta il timestamp di scadenza con il tempo corrente
+        # time.time() restituisce il tempo corrente in secondi dal 1 gennaio 1970
+        if exp is not None and exp < time.time():
+            return True  # Il token è scaduto
+        return False  # Il token non è scaduto
+    except jwt.DecodeError:
+        print("Errore nella decodifica del token.")
+        return True  # Se c'è un errore nella decodifica, assumi che il token sia scaduto
+
+def generate_username(first_name, last_name, birth_date, fake):
     birth_year = birth_date.strftime("%Y")
     birth_month_day = birth_date.strftime("%m%d")
     random_book_title = fake.word().lower()
@@ -98,29 +118,47 @@ def generate_username(first_name, last_name, birth_date):
     # Scegli una strategia in modo casuale e applicala
     return random.choice(strategies)()
 
+def pad_string(string, length):
+    return string.ljust(length, 'X')
+
 def genera_consonanti(stringa):
-    consonanti = ''.join([c for c in stringa.upper() if c not in 'AEIOU'])
-    return consonanti[:3] if len(consonanti) >= 3 else consonanti
+    return ''.join([c for c in stringa.upper() if c not in 'AEIOU'])
+
+def genera_vocali(stringa):
+    return ''.join([c for c in stringa.upper() if c in 'AEIOU'])
 
 def genera_codice_fiscale(last_name, first_name, gender, birth_date, birth_place):
-    # Gestione cognome e nome
-    codice = genera_consonanti(last_name).ljust(3, 'X')
-    codice += genera_consonanti(first_name).ljust(3, 'X')
+    codice = ''
 
-    # Gestione data di nascita e genere
-    birth_date = datetime.datetime.strptime(birth_date, "%d/%m/%Y")
-    codice += str(birth_date.year)[-2:]
-    codice += 'ABCDEHLMPRST'[birth_date.month - 1]
-    codice += str(birth_date.day + (40 if gender.upper() == 'F' else 0)).zfill(2)
+    # Estrai le consonanti e le vocali da cognome e nome
+    consonanti_cognome = genera_consonanti(last_name)
+    vocali_cognome = genera_vocali(last_name)
+    consonanti_nome = genera_consonanti(first_name)
+    vocali_nome = genera_vocali(first_name)
 
-    # Gestione luogo di nascita (fittizio)
+    # Costruisci il codice per il cognome
+    codice_cognome = pad_string(consonanti_cognome + vocali_cognome, 3)
+    codice += codice_cognome[:3]
+
+    # Costruisci il codice per il nome
+    codice_nome = pad_string(consonanti_nome + vocali_nome, 3)
+    codice += codice_nome[:3]
+
+    # Aggiungi la data di nascita e il genere
+    giorno, mese, anno = birth_date.split('/')
+    codice += anno[-2:]
+    codice += 'ABCDEHLMPRST'[int(mese) - 1]
+    if gender.upper() == 'F':
+        giorno = str(int(giorno) + 40)
+    codice += giorno.zfill(2)
+
+    # Aggiungi un codice fittizio per il luogo di nascita
     codice += ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=4))
 
     return codice
 
 # Funzione per generare dati casuali per un utente con email reale
-def generate_random_user_data():
-    fake = Faker('it_IT')
+def generate_random_user_data(fake):
 
     # Genera dati personali
     first_name = fake.first_name()
@@ -131,9 +169,9 @@ def generate_random_user_data():
 
     # Genera il codice fiscale
     cf = genera_codice_fiscale(last_name, first_name, gender, birth_date.strftime("%d/%m/%Y"), birth_place)
-    
+
     # Genera l'username per l'account
-    account_username = generate_username(first_name, last_name, birth_date) + str(random.randint(10, 99))
+    account_username = generate_username(first_name, last_name, birth_date, fake) + str(random.randint(10, 99))
 
     # Dizionario di provider di email fittizi
     fake_email_providers = [
@@ -146,7 +184,7 @@ def generate_random_user_data():
 ]
 
     # Genera l'username per l'email
-    email_username = generate_username(first_name, last_name, birth_date) + str(random.randint(10, 99))
+    email_username = generate_username(first_name, last_name, birth_date, fake) + str(random.randint(10, 99))
     email_provider = random.choice(fake_email_providers)
     email = f"{email_username}@{email_provider}"
 
@@ -154,44 +192,6 @@ def generate_random_user_data():
     password = fake.password()
 
     return User(account_username, email, password, first_name, last_name, birth_date.strftime("%d/%m/%Y"), gender, birth_place, cf)
-
-"""
-def generate_random_user_data():
-    fake = Faker()
-
-    # Genera un username per l'account
-    username = fake.user_name()
-
-    # Genera un username separato per l'email
-    email_username = fake.user_name()
-    
-    # Dizionario di provider di email fittizi
-    fake_email_providers = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com', 'hotmail.co.uk', 'hotmail.fr', 'msn.com', 'yahoo.fr', 'wanadoo.fr', 'orange.fr', 
-                            'comcast.net', 'yahoo.co.uk', 'yahoo.com.br', 'yahoo.co.in', 'live.com', 'rediffmail.com', 'free.fr', 'gmx.de', 'web.de', 'yandex.ru', 
-                            'ymail.com', 'libero.it', '	outlook.com', '	uol.com.br', '	bol.com.br', 'mail.ru', 'cox.net', 'hotmail.it', 'sbcglobal.net', 'sfr.fr', 
-                            'live.fr', 'verizon.net', '	live.co.uk', 'googlemail.com', 'yahoo.es', 'ig.com.br', 'live.nl', 'bigpond.com', 'terra.com.br', 'yahoo.it', 
-                            'neuf.fr', 'yahoo.de', 'alice.it', 'rocketmail.com', 'att.net', 'laposte.net', 'facebook.com', 'bellsouth.net', 'yahoo.in', 'hotmail.es', 
-                            'charter.net', 'yahoo.ca', 'yahoo.com.au', 'rambler.ru', 'hotmail.de', 'tiscali.it', 'shaw.ca', 'yahoo.co.jp', 'sky.com', 'earthlink.net', 
-                            'optonline.net', 'freenet.de', 't-online.de', 'aliceadsl.fr', 'virgilio.it', 'home.nl', 'qq.com', 'telenet.be', 'me.com', 'yahoo.com.ar', 
-                            'tiscali.co.uk', 'yahoo.com.mx', 'voila.fr', 'gmx.net', 'mail.com', 'planet.nl', 'tin.it', 'live.it', 'ntlworld.com', 'arcor.de', 'yahoo.co.id', 
-                            'frontiernet.net', 'hetnet.nl', 'live.com.au', 'yahoo.com.sg', 'zonnet.nl', 'club-internet.fr', 'juno.com', 'optusnet.com.au', 'blueyonder.co.uk', 
-                            'bluewin.ch', 'skynet.be', 'sympatico.ca', 'windstream.net', 'mac.com', 'centurytel.net', '	chello.nl', 'live.ca', 'aim.com', 'bigpond.net.au', 'proton.me']
-    
-    # Scegli un provider email casuale dal dizionario
-    email_provider = random.choice(fake_email_providers)
-    email = f"{email_username}@{email_provider}"
-
-    # Genera una password
-    password = fake.password()
-
-    first_name = fake.first_name()
-    last_name = fake.last_name()
-    birth_date = fake.date_of_birth().strftime("%d-%m-%Y")
-    gender = random.choice(["Male", "Female"])
-    birth_place = fake.city()
-
-    return User(username, email, password, first_name, last_name, birth_date, gender, birth_place)
-"""
 
 # Funzione per creare un nuovo utente
 def create_user(token, user):
@@ -208,7 +208,6 @@ def create_user(token, user):
             "credentials": [{"type": "password", "value": user.password, "temporary": False}],
             "firstName": user.first_name,
             "lastName": user.last_name,
-            # attributi personalizzati:
             "attributes": {
                 "Data Di Nascita": user.birth_date,
                 "Genere": user.gender,
@@ -219,25 +218,58 @@ def create_user(token, user):
         response = requests.post(url, headers=headers, data=json.dumps(data))
         response.raise_for_status()
         return response.status_code
+    
+    # Rimuovere le print commentate per eseguire debug
+    except requests.exceptions.HTTPError as e:
+        #print(f"HTTP Error: {e}")
+        return None
+    except requests.exceptions.ConnectionError as e:
+        #print(f"Connection Error: {e}")
+        return None
+    except requests.exceptions.Timeout as e:
+        #print(f"Timeout Error: {e}")
+        return None
     except requests.exceptions.RequestException as e:
-        #print(f"Errore durante la creazione dell'utente: {e}")
+        #print(f"Errore Generico: {e}")
         return None
     
 # Funzione per creare n utenti casuali
-def create_n_random_users(n):
+def create_n_random_users(n, fake):
     token = get_token()
     if not token:
         print("Impossibile ottenere il token di accesso.")
         return
 
     created = 0
+    attempts = 0
+    max_attempts = 5
+
     with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
         while created < n:
-            user = generate_random_user_data()
+            user = generate_random_user_data(fake)
+
+            # Rinnova il token se necessario
+            if token_scaduto(token):
+                token = get_token()
+                if not token:
+                    print("Impossibile rinnovare il token di accesso.")
+                    break
+            
             status_code = create_user(token, user)
+
             if status_code == 201:
                 created += 1
-                pbar.update(1)  # Aggiorna il contatore solo se l'utente è stato creato con successo
+                attempts = 0
+                pbar.update(1)
+            else:
+                attempts += 1
+                if attempts >= max_attempts:
+                    print(f"Massimo numero di tentativi raggiunto per l'utente {user.username}")
+                    break
+                sleep_time = 0.1 ** attempts
+                # Rimuovere le print commentate per eseguire debug
+                #print(f"Ritentare dopo {sleep_time} secondi")
+                time.sleep(sleep_time)
 
     print(f"Utenti creati: {created}/{n}")
 
@@ -304,6 +336,8 @@ def assign_user_to_group(access_token, user_id, group_id):
     assign_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups/{group_id}"
     headers = {'Authorization': f'Bearer {access_token}'}
     response = requests.put(assign_url, headers=headers)
+    
+    # Rimuovere le print commentate per eseguire debug
     try:
         response.raise_for_status()
         #print(f"User {user_id} assigned to group {group_id} successfully")
@@ -349,7 +383,7 @@ def create_groups_and_assign_users(group_names, num_users_to_assign):
         print(f"{group_name}: {count} utenti")
 
 # Funzione per mostrare il menu e gestire le scelte dell'utente
-def main_menu():
+def main_menu(fake):
     while True:
         clear_screen()  # Pulisce lo schermo all'inizio di ogni iterazione
         print("\nMenu:")
@@ -385,7 +419,7 @@ def main_menu():
 
         elif scelta == "2":
             numero_utenti = int(input("Con quanti utenti vuoi popolare il database?: "))
-            create_n_random_users(numero_utenti)
+            create_n_random_users(numero_utenti, fake)
         
         elif scelta == "1":
             username = input("Inserisci il nome utente: ")
@@ -411,15 +445,6 @@ def main_menu():
 
 # Esecuzione del menu principale
 if __name__ == "__main__":
+    fake = Faker('it_IT')
     clear_screen()  # Pulisce lo schermo prima di mostrare il menu la prima volta
-    main_menu()
-
-
-"""
-carte di credio
-posizione / indirizzo abitativo
-stato sociale ed economico
-età
-codice fiscale
-stato sui servizi che la persona utilizza (enel, vodafone, ecc)
-"""
+    main_menu(fake)

@@ -1,11 +1,28 @@
 #!/bin/sh
 
+# Controlla e crea il volume per PostgreSQL se non esiste
+if [ ! -d "/var/lib/postgresql/data" ]; then
+    mkdir -p /var/lib/postgresql/data
+fi
+
+# Controlla e crea il volume per Keycloak se non esiste
+if [ ! -d "/opt/keycloak-23.0.1/standalone/data" ]; then
+    mkdir -p /opt/keycloak-23.0.1/standalone/data
+fi
+
+# Assegna i permessi corretti per i volumi
+chown -R postgres:postgres /var/lib/postgresql/data
+chown -R postgres:postgres /opt/keycloak-23.0.1/standalone/data
+
 # Inizializza e avvia PostgreSQL come utente 'postgres'
 su postgres -c "initdb /var/lib/postgresql/data"
 su postgres -c "pg_ctl -D /var/lib/postgresql/data start"
 
 # Aspetta che PostgreSQL sia completamente avviato
-sleep 5
+until su postgres -c "pg_isready -d keycloak"; do
+  echo "Aspettando che PostgreSQL sia pronto..."
+  sleep 20
+done
 
 # Impostazioni di Keycloak (modifica secondo necessità)
 read -p "Enter admin username: " KEYCLOAK_ADMIN
@@ -27,9 +44,9 @@ export KEYCLOAK_ADMIN_PASSWORD
 
 # Attendi che Keycloak sia completamente avviato
 while ! nc -z localhost 8080; do   
-  sleep 10 # aspetta 1 secondo prima di controllare di nuovo
+  echo "Aspettando che Keycloak sia pronto..."
+  sleep 1
 done
 
 # Ora Keycloak è avviato, esegui lo script Python
 python3 /main.py
-

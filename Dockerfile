@@ -4,7 +4,7 @@ FROM alpine:latest
 RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip
 
 # Installa le librerie necessarie
-RUN pip3 install faker requests tqdm
+RUN pip3 install faker requests tqdm PyJWT
 
 # Scarica Keycloak versione 23.0.1
 RUN wget https://github.com/keycloak/keycloak/releases/download/23.0.1/keycloak-23.0.1.tar.gz -O /tmp/keycloak.tar.gz
