@@ -24,6 +24,9 @@ COPY entrypoint.sh /entrypoint.sh
 
 # Copia lo script Python per popolare il database
 COPY main.py /main.py
+COPY keycloak_utils.py /keycloak_utils.py
+COPY user.py /user.py
+COPY config.py /config.py
 
 RUN chmod +x /entrypoint.sh
 
