@@ -59,7 +59,6 @@ def pad_string(string, length):
 def genera_consonanti(stringa):
     return ''.join([c for c in stringa.upper() if c not in 'AEIOU'])
 
-
 def genera_vocali(stringa):
     return ''.join([c for c in stringa.upper() if c in 'AEIOU'])
 
@@ -77,7 +76,10 @@ def genera_codice_fiscale(last_name, first_name, gender, birth_date, birth_place
     codice += codice_cognome[:3]
 
     # Costruisci il codice per il nome
-    codice_nome = pad_string(consonanti_nome + vocali_nome, 3)
+    if len(consonanti_nome) >= 4:
+        codice_nome = consonanti_nome[0] + consonanti_nome[2] + consonanti_nome[3]
+    else:
+        codice_nome = pad_string(consonanti_nome + vocali_nome, 3)
     codice += codice_nome[:3]
 
     # Aggiungi la data di nascita e il genere
@@ -89,7 +91,8 @@ def genera_codice_fiscale(last_name, first_name, gender, birth_date, birth_place
     codice += giorno.zfill(2)
 
     # Aggiungi un codice fittizio per il luogo di nascita
-    codice += ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=4))
+    alfabeto_esteso = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ' + birth_place.upper())
+    codice += ''.join(random.choices(list(alfabeto_esteso), k=4))
 
     return codice
 

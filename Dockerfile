@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 # Installa OpenJDK 17, wget, file, PostgreSQL, e Python
-RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip
+RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip curl
 
 # Installa le librerie necessarie
 RUN pip3 install faker requests tqdm PyJWT

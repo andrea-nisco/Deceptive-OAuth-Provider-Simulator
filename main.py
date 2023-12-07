@@ -1,3 +1,5 @@
+# docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data test
+
 from faker import Faker
 from tqdm import tqdm
 import os
@@ -56,6 +58,31 @@ def create_n_random_users(n, fake):
 
     print(f"Utenti creati: {created}/{n}")
 
+def delete_random_users(fake):
+    token = get_token()
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    all_users = get_all_users(token)
+    if not all_users:
+        print("Nessun utente trovato.")
+        return
+
+    num_users_to_delete = int(input("Inserisci il numero di utenti da cancellare: "))
+    if num_users_to_delete > len(all_users):
+        print(f"Errore: il numero di utenti da cancellare ({num_users_to_delete}) è maggiore del totale degli utenti ({len(all_users)}).")
+        return
+
+    with tqdm(total=num_users_to_delete, desc="Cancellazione utenti", unit="utente") as pbar:
+        for _ in range(num_users_to_delete):
+            user_to_delete = random.choice(all_users)
+            delete_user(token, user_to_delete['id'])
+            all_users.remove(user_to_delete)
+            pbar.update(1)  # Aggiorna la barra di progressione
+
+    print(f"Totale utenti cancellati: {num_users_to_delete}")
+
 # Funzione per creare gruppi e assegnare utenti in modo casuale
 def create_groups_and_assign_users(group_names, num_users_to_assign):
     token = get_token()
@@ -98,6 +125,8 @@ def main_menu(fake):
     while True:
         clear_screen()  # Pulisce lo schermo all'inizio di ogni iterazione
         print("\nMenu:")
+        print("5. Verifica il numero utenti presenti nel database")
+        print("4. Cancella n utenti casuali")
         print("3. Crea gruppi e assegna utenti")
         print("2. Crea n utenti casuali")
         print("1. Crea un singolo utente")
@@ -105,7 +134,19 @@ def main_menu(fake):
         print("\n")
         scelta = input("Inserisci la tua scelta: ")
 
-        if scelta == "3":
+        if scelta == "5":
+            token = get_token()
+            if token:
+                all_users = get_all_users(token)
+                total_users = len(all_users)
+                print(f"Numero totale di utenti nel database: {total_users}")
+            else:
+                print("Impossibile ottenere il token di accesso.")
+
+        elif scelta == "4":
+            delete_random_users(fake)
+
+        elif scelta == "3":
             token = get_token()
             if token:
                 all_users = get_all_users(token)

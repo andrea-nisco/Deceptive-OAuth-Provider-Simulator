@@ -85,6 +85,20 @@ def create_user(token, user):
         #print(f"Errore Generico: {e}")
         return None
 
+def delete_user(token, user_id):
+    delete_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = requests.delete(delete_url, headers=headers)
+
+    # Rimuovere le print commentate per eseguire debug
+    try:
+        response.raise_for_status()
+        # print(f"User {user_id} deleted successfully")
+    except HTTPError as e:
+        # print(f"Failed to delete user {user_id}. Error: {e.response.text}")
+        return None
+
 def get_all_users(token):
     users = []
     users_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
