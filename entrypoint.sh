@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Percorsi dei file per memorizzare le credenziali
+ADMIN_CREDENTIALS_FILE="/opt/keycloak-23.0.1/credentials/admin_credentials.txt"
+
 # Controlla e crea il volume per PostgreSQL se non esiste
 if [ ! -d "/var/lib/postgresql/data" ]; then
     mkdir -p /var/lib/postgresql/data
@@ -18,62 +21,56 @@ chown -R postgres:postgres /opt/keycloak-23.0.1/standalone/data
 su postgres -c "initdb /var/lib/postgresql/data"
 su postgres -c "pg_ctl -D /var/lib/postgresql/data start"
 
+echo "Aspettando che PostgreSQL sia pronto..."
 # Aspetta che PostgreSQL sia completamente avviato
-until su postgres -c "pg_isready"; do
-  echo "Aspettando che PostgreSQL sia pronto..."
-  sleep 20
+until su postgres -c "pg_isready -d keycloak"; do
+  sleep 1
 done
 
-# Verifica se il database Keycloak esiste
-DB_EXISTS=$(su postgres -c "psql -tAc \"SELECT 1 FROM pg_database WHERE datname='keycloak'\"")
-
-# Verifica se l'utente Keycloak esiste
-USER_EXISTS=$(su postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='keycloak_admin'\"")
-
-# Se il database e l'utente non esistono, esegui la configurazione iniziale
-if [ "$DB_EXISTS" != "1" ] || [ "$USER_EXISTS" != "1" ]; then
-  # Impostazioni di Keycloak (modifica secondo necessità)
-  read -p "Enter admin username: " KEYCLOAK_ADMIN
-  read -s -p "Enter admin password: " KEYCLOAK_ADMIN_PASSWORD
-  echo
-
-  # Configura il database per Keycloak
-  su postgres -c "createdb keycloak"
-  su postgres -c "createuser $KEYCLOAK_ADMIN"
-  su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH ENCRYPTED PASSWORD '$KEYCLOAK_ADMIN_PASSWORD';\""
-  su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KEYCLOAK_ADMIN;\""
-  su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH SUPERUSER;\""
-
-  export KEYCLOAK_ADMIN
-  export KEYCLOAK_ADMIN_PASSWORD
+# Verifica se le credenziali di amministratore esistono
+if [ -f "$ADMIN_CREDENTIALS_FILE" ]; then
+    # Legge le credenziali salvate
+    read KEYCLOAK_ADMIN KEYCLOAK_ADMIN_PASSWORD < $ADMIN_CREDENTIALS_FILE
+    echo "Utilizzo delle credenziali di amministratore esistenti."
 else
-  # Richiedi le credenziali finché non vengono inserite correttamente
-  while true; do
+    # Chiede all'utente di inserire le credenziali
     read -p "Enter admin username: " KEYCLOAK_ADMIN
     read -s -p "Enter admin password: " KEYCLOAK_ADMIN_PASSWORD
     echo
 
-    # Verifica le credenziali
-    CREDENTIALS_CORRECT=$(su postgres -c "psql -tAc \"SELECT 1 FROM pg_shadow WHERE usename='$KEYCLOAK_ADMIN' AND passwd=md5('$KEYCLOAK_ADMIN_PASSWORD' || usename)\"")
+    # Salva le credenziali per i successivi avvii
+    echo $KEYCLOAK_ADMIN $KEYCLOAK_ADMIN_PASSWORD > $ADMIN_CREDENTIALS_FILE
+    chmod 600 $ADMIN_CREDENTIALS_FILE
 
-    if [ "$CREDENTIALS_CORRECT" = "1" ]; then
-      export KEYCLOAK_ADMIN
-      export KEYCLOAK_ADMIN_PASSWORD
-      break
-    else
-      echo "Credenziali errate. Riprova."
-    fi
-  done
+    # Configura il database per Keycloak
+    su postgres -c "createdb keycloak"
+    su postgres -c "createuser $KEYCLOAK_ADMIN"
+    su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH ENCRYPTED PASSWORD '$KEYCLOAK_ADMIN_PASSWORD';\""
+    su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KEYCLOAK_ADMIN;\""
+    su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH SUPERUSER;\""
 fi
+
+export KEYCLOAK_ADMIN
+export KEYCLOAK_ADMIN_PASSWORD
 
 # Avvia Keycloak in background
 /opt/keycloak-23.0.1/bin/kc.sh start-dev --db=postgres --db-username=$KEYCLOAK_ADMIN --db-password=$KEYCLOAK_ADMIN_PASSWORD --db-url=jdbc:postgresql://localhost/keycloak &
 
+echo "Aspettando che Keycloak sia pronto..."
 # Attendi che Keycloak sia completamente avviato
 while ! nc -z localhost 8080; do   
-  echo "Aspettando che Keycloak sia pronto..."
   sleep 1
 done
 
-# Ora Keycloak è avviato, esegui lo script Python
-python3 /main.py
+# Verifica delle credenziali prima di eseguire main.py
+read -p "Enter your admin username to continue: " INPUT_ADMIN
+read -s -p "Enter your admin password to continue: " INPUT_ADMIN_PASSWORD
+echo
+
+if [ "$INPUT_ADMIN" = "$KEYCLOAK_ADMIN" ] && [ "$INPUT_ADMIN_PASSWORD" = "$KEYCLOAK_ADMIN_PASSWORD" ]; then
+    # Credenziali corrette, esegui main.py
+    python3 /main.py
+else
+    # Credenziali errate, non eseguire main.py
+    echo "Credenziali errate, riprova."
+fi

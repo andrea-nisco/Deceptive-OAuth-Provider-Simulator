@@ -1,4 +1,6 @@
 import random  
+import getpass
+import datetime
 
 class User:
     def __init__(self, username, email, password, first_name, last_name, birth_date, gender, birth_place, cf):
@@ -11,6 +13,28 @@ class User:
         self.gender = gender
         self.birth_place = birth_place
         self.cf = cf
+
+def input_user_data():
+    username = input("Inserisci username: ")
+    email = input("Inserisci email: ")
+    password = getpass.getpass("Inserisci password: ")
+    first_name = input("Inserisci nome: ")
+    last_name = input("Inserisci cognome: ")
+    
+    # Gestione dell'input della data con il formato corretto
+    while True:
+        birth_date_input = input("Inserisci data di nascita (gg/mm/aaaa): ")
+        try:
+            birth_date = datetime.datetime.strptime(birth_date_input, "%d/%m/%Y").strftime("%d/%m/%Y")
+            break
+        except ValueError:
+            print("Formato data non valido. Riprova.")
+
+    gender = input("Inserisci genere: ")
+    birth_place = input("Inserisci luogo di nascita: ")
+    cf = input("Inserisci codice fiscale: ")
+
+    return User(username, email, password, first_name, last_name, birth_date, gender, birth_place, cf)
 
 def generate_username(first_name, last_name, birth_date, fake):
     birth_year = birth_date.strftime("%Y")

@@ -1,10 +1,9 @@
-# docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data test
+# docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data -v keycloak_creds:/opt/keycloak-23.0.1/credentials test -v
 
 from faker import Faker
 from tqdm import tqdm
 import os
 import random
-import time
 
 from config import *
 from user import *
@@ -17,46 +16,10 @@ def clear_screen():
     # MacOS/Linux
     else:
         _ = os.system('clear')
-    
-# Funzione per creare n utenti casuali
-def create_n_random_users(n, fake):
-    token = get_token()
-    if not token:
-        print("Impossibile ottenere il token di accesso.")
-        return
 
-    created = 0
-    attempts = 0
-    max_attempts = 5
-
-    with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
-        while created < n:
-            user = generate_random_user_data(fake)
-
-            # Rinnova il token se necessario
-            if token_scaduto(token):
-                token = get_token()
-                if not token:
-                    print("Impossibile rinnovare il token di accesso.")
-                    break
-            
-            status_code = create_user(token, user)
-
-            if status_code == 201:
-                created += 1
-                attempts = 0
-                pbar.update(1)
-            else:
-                attempts += 1
-                if attempts >= max_attempts:
-                    print(f"Massimo numero di tentativi raggiunto per l'utente {user.username}")
-                    break
-                sleep_time = 0.1 ** attempts
-                # Rimuovere le print commentate per eseguire debug
-                #print(f"Ritentare dopo {sleep_time} secondi")
-                time.sleep(sleep_time)
-
-    print(f"Utenti creati: {created}/{n}")
+def add_user_to_database(token):
+    user = input_user_data()
+    return create_user(token, user)
 
 def delete_random_users(fake):
     token = get_token()
@@ -174,18 +137,8 @@ def main_menu(fake):
             create_n_random_users(numero_utenti, fake)
         
         elif scelta == "1":
-            username = input("Inserisci il nome utente: ")
-            email = input("Inserisci l'email: ")
-            password = input("Inserisci la password: ")
             token = get_token()
-            if token:
-                status_code = create_user(token, username, email, password)
-                if status_code == 201:
-                    print("Utente creato con successo.")
-                else:
-                    print(f"Errore nella creazione dell'utente. Codice di risposta: {status_code}")
-            else:
-                print("Impossibile ottenere il token di accesso.")
+            add_user_to_database(token)
 
         elif scelta == "0":
             break

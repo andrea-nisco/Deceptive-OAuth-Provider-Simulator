@@ -5,6 +5,7 @@ import time  # Per gestire il tempo (es. confrontare timestamp)
 import json  # Per la serializzazione/deserializzazione dei dati JSON
 
 from config import *
+from user import *
 
 # Funzione per ottenere il token di accesso
 def get_token():
@@ -23,7 +24,6 @@ def get_token():
     except requests.exceptions.RequestException as e:
         print(f"Errore durante l'ottenimento del token: {e}")
         return None
-        
 
 # Funzione per rinnovare il token di accesso se scade
 def token_scaduto(token):
@@ -43,7 +43,6 @@ def token_scaduto(token):
     except jwt.DecodeError:
         print("Errore nella decodifica del token.")
         return True  # Se c'è un errore nella decodifica, assumi che il token sia scaduto
-
 
 # Funzione per creare un nuovo utente
 def create_user(token, user):
@@ -73,17 +72,57 @@ def create_user(token, user):
     
     # Rimuovere le print commentate per eseguire debug
     except requests.exceptions.HTTPError as e:
-        #print(f"HTTP Error: {e}")
+        print(f"HTTP Error: {e}")
         return None
     except requests.exceptions.ConnectionError as e:
-        #print(f"Connection Error: {e}")
+        print(f"Connection Error: {e}")
         return None
     except requests.exceptions.Timeout as e:
-        #print(f"Timeout Error: {e}")
+        print(f"Timeout Error: {e}")
         return None
     except requests.exceptions.RequestException as e:
-        #print(f"Errore Generico: {e}")
+        print(f"Errore Generico: {e}")
         return None
+    
+# Funzione per creare n utenti casuali
+def create_n_random_users(n, fake):
+    token = get_token()
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    created = 0
+    attempts = 0
+    max_attempts = 5
+
+    with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
+        while created < n:
+            user = generate_random_user_data(fake)
+
+            # Rinnova il token se necessario
+            if token_scaduto(token):
+                token = get_token()
+                if not token:
+                    print("Impossibile rinnovare il token di accesso.")
+                    break
+            
+            status_code = create_user(token, user)
+
+            if status_code == 201:
+                created += 1
+                attempts = 0
+                pbar.update(1)
+            else:
+                # Rimuovere le print commentate per eseguire debug
+                attempts += 1
+                if attempts >= max_attempts:
+                    #print(f"Massimo numero di tentativi raggiunto per l'utente {user.username}")
+                    break
+                sleep_time = 0.1 ** attempts
+                #print(f"Ritentare dopo {sleep_time} secondi")
+                time.sleep(sleep_time)
+
+    print(f"Utenti creati: {created}/{n}")
 
 def delete_user(token, user_id):
     delete_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}"
