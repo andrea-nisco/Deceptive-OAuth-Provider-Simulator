@@ -46,6 +46,45 @@ def delete_random_users(fake):
 
     print(f"Totale utenti cancellati: {num_users_to_delete}")
 
+def create_oauth_client_menu():
+    print("\nCreazione di un nuovo client OAuth in Keycloak.")
+
+    token = get_token()  # Assicurati che questa funzione restituisca un token valido
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    # Raccogli i dati necessari dall'utente
+    #client_name = input("Inserisci il nome del client: ")
+    #redirect_uri = input("Inserisci l'URI di reindirizzamento del client: ")
+    #client_root_url = input("Inserisci l'URL di base del client: ")
+    #client_type = input("Inserisci il tipo di client (public/confidential): ").lower()
+
+    # Crea un dizionario con i dati del client
+    client_data = {
+        'clientId': 'test-client',
+        'enabled': True,
+        'publicClient': False,
+        'redirectUris': ['http://localhost:3000/*'],
+        'webOrigins': ['http://localhost:3000/'],
+        'protocol': 'openid-connect',
+        'standardFlowEnabled': True,
+        'implicitFlowEnabled': False,
+        'directAccessGrantsEnabled': True,
+        'attributes': {
+            'pkce.code.challenge.method': 'S256'
+        },
+        # Altre configurazioni...
+    }
+
+    # Chiama la funzione per creare il client
+    client_id = create_oauth_client(token, client_data)
+
+    if client_id:
+        print(f"Client OAuth creato con successo. ID Client: {client_id}")
+    else:
+        print("Errore nella creazione del client OAuth.")
+
 # Funzione per creare gruppi e assegnare utenti in modo casuale
 def create_groups_and_assign_users(group_names, num_users_to_assign):
     token = get_token()
@@ -88,6 +127,7 @@ def main_menu(fake):
     while True:
         clear_screen()  # Pulisce lo schermo all'inizio di ogni iterazione
         print("\nMenu:")
+        print("6. Crea un nuovo client OAuth in Keycloak")
         print("5. Verifica il numero utenti presenti nel database")
         print("4. Cancella n utenti casuali")
         print("3. Crea gruppi e assegna utenti")
@@ -97,7 +137,10 @@ def main_menu(fake):
         print("\n")
         scelta = input("Inserisci la tua scelta: ")
 
-        if scelta == "5":
+        if scelta == "6":
+            create_oauth_client_menu()
+
+        elif scelta == "5":
             token = get_token()
             if token:
                 all_users = get_all_users(token)

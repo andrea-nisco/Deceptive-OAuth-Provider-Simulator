@@ -45,6 +45,22 @@ def token_scaduto(token):
         print("Errore nella decodifica del token.")
         return True  # Se c'è un errore nella decodifica, assumi che il token sia scaduto
 
+# Funzione per creare un nuovo client
+def create_oauth_client(access_token, client_data):
+    client_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/clients"
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.post(client_url, json=client_data, headers=headers)
+    try:
+        response.raise_for_status()
+        print(f"OAuth client created successfully")
+        return response.headers.get('Location').split('/')[-1]  # Get the ID of the created client
+    except HTTPError as e:
+        print(f"Failed to create OAuth client. Error: {e.response.text}")
+        return None
+
 # Funzione per creare un nuovo utente
 def create_user(token, user):
     try:
