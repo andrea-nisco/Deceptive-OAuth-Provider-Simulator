@@ -1,4 +1,3 @@
-
 import os
 
 # Configura l'URL del server Keycloak

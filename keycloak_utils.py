@@ -3,6 +3,7 @@ from requests.exceptions import HTTPError  # Per gestire le eccezioni HTTP
 import jwt  # Libreria PyJWT per la decodifica dei token JWT
 import time  # Per gestire il tempo (es. confrontare timestamp)
 import json  # Per la serializzazione/deserializzazione dei dati JSON
+from tqdm import tqdm
 
 from config import *
 from user import *
@@ -72,16 +73,16 @@ def create_user(token, user):
     
     # Rimuovere le print commentate per eseguire debug
     except requests.exceptions.HTTPError as e:
-        print(f"HTTP Error: {e}")
+        #print(f"HTTP Error: {e}")
         return None
     except requests.exceptions.ConnectionError as e:
-        print(f"Connection Error: {e}")
+        #print(f"Connection Error: {e}")
         return None
     except requests.exceptions.Timeout as e:
-        print(f"Timeout Error: {e}")
+        #print(f"Timeout Error: {e}")
         return None
     except requests.exceptions.RequestException as e:
-        print(f"Errore Generico: {e}")
+        #print(f"Errore Generico: {e}")
         return None
     
 # Funzione per creare n utenti casuali

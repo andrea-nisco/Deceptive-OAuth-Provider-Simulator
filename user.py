@@ -37,45 +37,31 @@ def input_user_data():
     return User(username, email, password, first_name, last_name, birth_date, gender, birth_place, cf)
 
 def generate_username(first_name, last_name, birth_date, fake):
-    birth_year = birth_date.strftime("%Y")
-    birth_month_day = birth_date.strftime("%m%d")
-    random_book_title = fake.word().lower()
-    random_game = fake.word().lower()
-    random_color = fake.color_name().lower().replace(" ", "")
-    random_city = fake.city().lower().replace(" ", "")
-    random_country = fake.country().lower().replace(" ", "")
+    elements = {
+        'first_name': first_name,
+        'last_name': last_name,
+        'birth_year': birth_date.strftime("%Y"),
+        'birth_month_day': birth_date.strftime("%m%d"),
+        'random_word': fake.word().lower(),
+        'random_game': fake.word().lower(),
+        'random_color': fake.color_name().lower().replace(" ", ""),
+        'random_city': fake.city().lower().replace(" ", ""),
+        'random_country': fake.country().lower().replace(" ", "")
+    }
 
-    # Definisci 30 strategie diverse per la creazione dell'username
-    strategies = [
-        lambda: f"{first_name}.{last_name}",
-        lambda: f"{last_name}_{first_name}",
-        lambda: f"{first_name[0]}{last_name}{birth_year}",
-        lambda: f"{first_name}{birth_month_day}",
-        lambda: f"{last_name[:3]}{first_name[:2]}{birth_year[-2:]}",
-        lambda: f"{random_book_title}{last_name[:3]}",
-        lambda: f"{first_name}_{random_game}",
-        lambda: f"{random_game}{birth_year}",
-        lambda: f"{random_color}{last_name[0]}{birth_year[-2:]}",
-        lambda: f"{first_name}{random_country[:3]}",
-        lambda: f"{random_city}_{first_name[0]}{last_name[0]}",
-        lambda: f"{birth_year}{random_book_title}",
-        lambda: f"{last_name}_{random_color}",
-        lambda: f"{random_game[0:3]}_{birth_month_day}",
-        lambda: f"{last_name[0:3]}_{random_city}",
-        lambda: f"{random_country}_{birth_year}",
-        lambda: f"{birth_month_day}_{random_game}",
-        lambda: f"{random_color}{birth_year}",
-        lambda: f"{first_name}_{random_country[:3]}",
-        lambda: f"{last_name[0]}{random_city[0:3]}{birth_year}",
-        lambda: f"{random_book_title[0:3]}_{random_country[0:3]}",
-        lambda: f"{first_name[0]}{random_color[0:3]}",
-        lambda: f"{last_name}_{random_game[0:3]}",
-        lambda: f"{random_city[0:3]}{birth_month_day}",
-        lambda: f"{random_country[0:3]}_{first_name}"
-    ]
+    # Numero di elementi da includere (es. tra 2 e 4)
+    num_elements = random.randint(2, 4)
 
-    # Scegli una strategia in modo casuale e applicala
-    return random.choice(strategies)()
+    # Scegliere casualmente gli elementi e l'ordine
+    chosen_elements = random.sample(elements.keys(), num_elements)
+    username_parts = [elements[element] for element in chosen_elements]
+
+    # Opzionale: aggiungere separatori o numeri casuali
+    separator = random.choice(['.', '_', ''])
+    if random.choice([True, False]):
+        username_parts.append(str(random.randint(0, 99)))
+
+    return separator.join(username_parts)
 
 def pad_string(string, length):
     return string.ljust(length, 'X')

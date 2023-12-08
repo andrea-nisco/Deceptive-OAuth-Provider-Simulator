@@ -1,14 +1,22 @@
 FROM alpine:latest
 
 # Installa OpenJDK 17, wget, file, PostgreSQL, Python e pulisce la cache
-RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip curl && \
-    pip3 install faker requests tqdm PyJWT && \
-    wget https://github.com/keycloak/keycloak/releases/download/23.0.1/keycloak-23.0.1.tar.gz -O /tmp/keycloak.tar.gz && \
+RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip curl
+
+# Crea un ambiente virtuale Python e installa i pacchetti necessari
+RUN python3 -m venv /opt/venv && \
+    . /opt/venv/bin/activate && \
+    pip3 install faker requests tqdm PyJWT
+
+# Scarica e installa Keycloak
+RUN wget https://github.com/keycloak/keycloak/releases/download/23.0.1/keycloak-23.0.1.tar.gz -O /tmp/keycloak.tar.gz && \
     ls -l /tmp/keycloak.tar.gz && \
     file /tmp/keycloak.tar.gz && \
     tar -xzf /tmp/keycloak.tar.gz -C /opt && \
-    rm /tmp/keycloak.tar.gz && \
-    mkdir -p /run/postgresql && chown -R postgres:postgres /run/postgresql && \
+    rm /tmp/keycloak.tar.gz
+
+# Configura PostgreSQL
+RUN mkdir -p /run/postgresql && chown -R postgres:postgres /run/postgresql && \
     mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql/data
 
 # Copia i file necessari nell'immagine

@@ -68,8 +68,10 @@ read -s -p "Enter your admin password to continue: " INPUT_ADMIN_PASSWORD
 echo
 
 if [ "$INPUT_ADMIN" = "$KEYCLOAK_ADMIN" ] && [ "$INPUT_ADMIN_PASSWORD" = "$KEYCLOAK_ADMIN_PASSWORD" ]; then
-    # Credenziali corrette, esegui main.py
-    python3 /main.py
+    # Attiva l'ambiente virtuale prima di eseguire main.py
+    . /opt/venv/bin/activate
+    python /main.py
+    deactivate
 else
     # Credenziali errate, non eseguire main.py
     echo "Credenziali errate, riprova."
