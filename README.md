@@ -1,24 +1,24 @@
 # Deceptive-OAuth-Provider-Simulator
 
-Welcome to the "Deceptive OAuth Provider Simulator" - a cutting-edge cybersecurity project designed to protect real assets by luring attackers to a simulated OAuth2.0 provider. This decoy, developed as part of a master's program, serves as a digital honeypot, strategically deceiving potential adversaries.
+Welcome to the "Deceptive OAuth Provider Simulator." This project is an advanced cybersecurity initiative developed to safeguard real-world assets by redirecting potential attackers to a fabricated OAuth2.0 provider. Created as a key component of a master's program, this tool functions as an effective digital honeypot, strategically misleading adversaries.
 
 ## Getting Started
 
-To get this project up and running, you'll need to follow a few simple steps. Don't worry, we'll guide you through each one!
+This section outlines the necessary steps to set up and run the Deceptive OAuth Provider Simulator. The instructions are straightforward and designed to facilitate a smooth setup process.
 
 ### Prerequisites
 
-Make sure you have Docker installed on your machine. If you're using Windows, you'll need to execute a few additional commands to set things up:
+Ensure Docker is installed on your system. Users operating on Windows must perform additional steps for proper configuration:
 
-1. **Start Docker**
+1. **Initiate Docker**
 
-   Just the usual routine to get Docker running on your machine.
+   Standard procedure to activate Docker on your system.
 
 2. **Windows Configuration**
 
-   Run these commands in your PowerShell to set up the necessary environment:
+   Execute the following commands in PowerShell to prepare your environment:
 
-   - Execute Policy Change:
+   - Policy Adjustment:
      ```
      Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
      ```
@@ -32,26 +32,26 @@ Make sure you have Docker installed on your machine. If you're using Windows, yo
      ```
      dos2unix entrypoint.sh
      ```
-     (Make sure to run this in the repo folder)
+     Note: Run this command within the repository directory.
 
 ### Installation
 
-Now, let's build and run the simulator.
+Follow these steps to build and deploy the simulator.
 
-1. **Build the Docker Image**
+1. **Docker Image Construction**
 
-   Execute the following command to build the Docker image:
+   Use this command to construct the Docker image:
    ```
    docker build -t test .
    ```
-3. **Run the Docker Container**
+3. **Launching the Docker Container**
 
-   Time to bring our simulator to life! Run this command:
+   To initiate the simulator, execute:
    ```
    docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data -v keycloak_creds:/opt/keycloak-23.0.1/credentials test -v
    ```
-## Voilà!
+## Conclusion
 
-You're all set! The Deceptive OAuth Provider Simulator is now operational and ready to serve as your digital guardian against cyber threats.
+The Deceptive OAuth Provider Simulator is now fully operational. It stands ready to serve as an advanced tool in your cybersecurity arsenal.
 
-If you encounter any issues or have questions, feel free to reach out to our team. Happy simulating, and thank you for contributing to a safer digital world!
+For any technical issues or inquiries, please contact our support team. We appreciate your commitment to enhancing digital security.
