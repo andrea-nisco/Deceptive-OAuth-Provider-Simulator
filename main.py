@@ -68,9 +68,10 @@ def create_oauth_client_menu():
         'redirectUris': ['http://localhost:3000/*'],
         'webOrigins': ['http://localhost:3000/'],
         'protocol': 'openid-connect',
-        'standardFlowEnabled': True,
-        'implicitFlowEnabled': False,
-        'directAccessGrantsEnabled': True,
+        'standardFlowEnabled': True,  # Per il flusso di autorizzazione standard
+        'implicitFlowEnabled': False,  # Impostare su True se necessario
+        'directAccessGrantsEnabled': True,  # Per l'autenticazione diretta
+        'serviceAccountsEnabled': False,  # Impostare su True se il client ha bisogno di un account di servizio
         'attributes': {
             'pkce.code.challenge.method': 'S256'
         },
