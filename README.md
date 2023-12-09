@@ -41,15 +41,15 @@ Now, let's build and run the simulator.
 1. **Build the Docker Image**
 
    Execute the following command to build the Docker image:
-
+   ```
    docker build -t test .
-
-2. **Run the Docker Container**
+   ```
+3. **Run the Docker Container**
 
    Time to bring our simulator to life! Run this command:
-
+   ```
    docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data -v keycloak_creds:/opt/keycloak-23.0.1/credentials test -v
-
+   ```
 ## Voilà!
 
 You're all set! The Deceptive OAuth Provider Simulator is now operational and ready to serve as your digital guardian against cyber threats.
