@@ -1,6 +1,7 @@
 import random  
 import getpass
 import datetime
+from datetime import datetime, timedelta
 
 class User:
     def __init__(self, username, email, password, first_name, last_name, birth_date, gender, birth_place, cf):
@@ -157,3 +158,24 @@ def generate_random_user_data(fake):
     password = fake.password()
 
     return User(account_username, email, password, first_name, last_name, birth_date.strftime("%d/%m/%Y"), gender, birth_place, cf)
+
+    #Genera una carta di credito casuale
+def generate_card_info_v2():
+    # Generate a random 16 digit card number
+    card_number = ''.join([str(random.randint(0, 9)) for _ in range(16)])
+
+    # Generate a random expiration date within the next 20 years
+    today = datetime.today()
+    max_future_years = 20
+    future_date = today + timedelta(days=365 * max_future_years)
+    expiration_year = random.randint(today.year, future_date.year)
+    expiration_month = random.randint(1, 12)
+    expiration_day = random.randint(1, 28)  # To avoid complications with February
+
+    # Format the expiration date as DD/MM/YYYY
+    expiration_date = f"{str(expiration_day).zfill(2)}/{str(expiration_month).zfill(2)}/{expiration_year}"
+
+    # Generate a random 3 digit CVV
+    cvv = ''.join([str(random.randint(0, 9)) for _ in range(3)])
+
+    return card_number, expiration_date, cvv
