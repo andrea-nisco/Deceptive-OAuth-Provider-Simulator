@@ -111,11 +111,23 @@ def create_n_random_users(n, fake):
     created = 0
     attempts = 0
     max_attempts = 5
+    continua=True
+    add_credit_card=False
+
+    while continua:
+        print("1. Aggiungi carta di credito")
+        print("0. Continua..")
+        scelta= input("Scegli un'opzione: ")
+        if add_credit_card==False:
+            add_credit_card = scelta == "1"
+        stop = scelta == "0"
+        if stop:
+            continua=False
 
     with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
         while created < n:
             user = generate_random_user_data(fake)
-
+            user_id=user.username
             # Rinnova il token se necessario
             if token_scaduto(token):
                 token = get_token()
@@ -128,6 +140,10 @@ def create_n_random_users(n, fake):
             if status_code == 201:
                 created += 1
                 attempts = 0
+                print(add_credit_card)
+                if add_credit_card:
+                    print("aaaa",add_credit_card,user_id)
+                    add_credit_card_data(user_id)
                 pbar.update(1)
             else:
                 # Rimuovere le print commentate per eseguire debug
@@ -224,4 +240,26 @@ def assign_user_to_group(access_token, user_id, group_id):
         #print(f"User {user_id} assigned to group {group_id} successfully")
     except HTTPError as e:
         #print(f"Failed to assign user {user_id} to group {group_id}. Error: {e.response.text}")
+        return None
+    
+def add_credit_card_data(user_id):
+    token = get_token()
+    card_number, expiration_date, cvv = generate_card_info_v2()
+    print(card_number, expiration_date, cvv)
+    update_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    card_data = {
+        "attributes": {
+            "CardNumber": card_number,
+            "ExpirationDate": expiration_date,
+            "CVV": cvv
+        }
+    }
+    response = requests.put(update_url, headers=headers, json=card_data)
+
+    try:
+        response.raise_for_status()
+        print(f"Carta di credito aggiunta con successo all'utente {user_id}")
+    except HTTPError as e:
+        print(f"Errore nell'aggiungere la carta di credito all'utente {user_id}: {e.response.text}")
         return None
