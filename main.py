@@ -160,18 +160,26 @@ def main_menu(fake):
                 if all_users:
                     total_users = len(all_users)
                     print(f"Numero totale di utenti nel database: {total_users}")
-                    while True:  # Aggiungi un ciclo per controllare l'input dell'utente
-                        num_users_to_assign = int(input("Quanti utenti vuoi distribuire nei gruppi?: "))
-                        if num_users_to_assign <= total_users:
-                            break  # L'input è valido, esci dal ciclo
-                        else:
-                            print(f"Errore: hai inserito un numero maggiore del totale di utenti disponibili ({total_users}). Riprova.")
+                    num_users_to_assign = 0
+                    while True:
+                        try:
+                            num_users_to_assign = int(input("Quanti utenti vuoi distribuire nei gruppi?: "))
+                            if num_users_to_assign > total_users:
+                                print(f"Errore: hai inserito un numero maggiore del totale di utenti disponibili ({total_users}).")
+                                continue
+                            break
+                        except ValueError:
+                            print("Errore: inserisci un numero intero.")
 
-                    num_gruppi = int(input("Inserisci il numero di gruppi da creare: "))
-                    group_names = []
-                    for i in range(num_gruppi):
-                        group_name = input(f"Inserisci il nome per il gruppo {i+1}: ")
-                        group_names.append(group_name)
+                    num_gruppi = 0
+                    while True:
+                        try:
+                            num_gruppi = int(input("Inserisci il numero di gruppi da creare: "))
+                            break
+                        except ValueError:
+                            print("Errore: inserisci un numero intero.")
+
+                    group_names = [input(f"Inserisci il nome per il gruppo {i+1}: ") for i in range(num_gruppi)]
                     create_groups_and_assign_users(group_names, num_users_to_assign)
             else:
                 print("Impossibile ottenere il token di accesso.")
