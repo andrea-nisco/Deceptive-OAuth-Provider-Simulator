@@ -5,21 +5,21 @@ ADMIN_CREDENTIALS_FILE="/opt/keycloak-23.0.1/credentials/admin_credentials.txt"
 
 # Controlla e crea il volume per PostgreSQL se non esiste
 if [ ! -d "/var/lib/postgresql/data" ]; then
-    mkdir -p /var/lib/postgresql/data
+    mkdir -p /var/lib/postgresql/data > /dev/null 2>&1
 fi
 
 # Controlla e crea il volume per Keycloak se non esiste
 if [ ! -d "/opt/keycloak-23.0.1/standalone/data" ]; then
-    mkdir -p /opt/keycloak-23.0.1/standalone/data
+    mkdir -p /opt/keycloak-23.0.1/standalone/data > /dev/null 2>&1
 fi
 
 # Assegna i permessi corretti per i volumi
-chown -R postgres:postgres /var/lib/postgresql/data
-chown -R postgres:postgres /opt/keycloak-23.0.1/standalone/data
+chown -R postgres:postgres /var/lib/postgresql/data > /dev/null 2>&1
+chown -R postgres:postgres /opt/keycloak-23.0.1/standalone/data > /dev/null 2>&1
 
 # Inizializza e avvia PostgreSQL come utente 'postgres'
-su postgres -c "initdb /var/lib/postgresql/data"
-su postgres -c "pg_ctl -D /var/lib/postgresql/data start"
+su postgres -c "initdb /var/lib/postgresql/data" > /dev/null 2>&1
+su postgres -c "pg_ctl -D /var/lib/postgresql/data start" > /dev/null 2>&1
 
 echo "Aspettando che PostgreSQL sia pronto..."
 # Aspetta che PostgreSQL sia completamente avviato
@@ -43,18 +43,18 @@ else
     chmod 600 $ADMIN_CREDENTIALS_FILE
 
     # Configura il database per Keycloak
-    su postgres -c "createdb keycloak"
-    su postgres -c "createuser $KEYCLOAK_ADMIN"
-    su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH ENCRYPTED PASSWORD '$KEYCLOAK_ADMIN_PASSWORD';\""
-    su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KEYCLOAK_ADMIN;\""
-    su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH SUPERUSER;\""
+    su postgres -c "createdb keycloak" > /dev/null 2>&1
+    su postgres -c "createuser $KEYCLOAK_ADMIN" > /dev/null 2>&1
+    su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH ENCRYPTED PASSWORD '$KEYCLOAK_ADMIN_PASSWORD';\"" > /dev/null 2>&1
+    su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KEYCLOAK_ADMIN;\"" > /dev/null 2>&1
+    su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH SUPERUSER;\"" > /dev/null 2>&1
 fi
 
-export KEYCLOAK_ADMIN
+export KEYCLOAK_ADMIN 
 export KEYCLOAK_ADMIN_PASSWORD
 
 # Avvia Keycloak in background
-/opt/keycloak-23.0.1/bin/kc.sh start-dev --db=postgres --db-username=$KEYCLOAK_ADMIN --db-password=$KEYCLOAK_ADMIN_PASSWORD --db-url=jdbc:postgresql://localhost/keycloak &
+/opt/keycloak-23.0.1/bin/kc.sh start-dev --db=postgres --db-username=$KEYCLOAK_ADMIN --db-password=$KEYCLOAK_ADMIN_PASSWORD --db-url=jdbc:postgresql://localhost/keycloak > /dev/null 2>&1 &
 
 echo "Aspettando che Keycloak sia pronto..."
 # Attendi che Keycloak sia completamente avviato

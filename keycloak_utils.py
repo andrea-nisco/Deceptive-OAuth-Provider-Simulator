@@ -5,6 +5,7 @@ import time  # Per gestire il tempo (es. confrontare timestamp)
 import json  # Per la serializzazione/deserializzazione dei dati JSON
 from tqdm import tqdm
 
+import time
 from config import *
 from user import *
 
@@ -29,21 +30,14 @@ def get_token():
 # Funzione per rinnovare il token di accesso se scade
 def token_scaduto(token):
     try:
-        # Decodifica il token per ottenere il payload
-        # Non è necessario verificare la firma del token in questo caso
         payload = jwt.decode(token, options={"verify_signature": False})
-
-        # Ottieni il timestamp di scadenza dal payload
         exp = payload.get("exp")
-
-        # Confronta il timestamp di scadenza con il tempo corrente
-        # time.time() restituisce il tempo corrente in secondi dal 1 gennaio 1970
         if exp is not None and exp < time.time():
-            return True  # Il token è scaduto
-        return False  # Il token non è scaduto
+            return True
+        return False
     except jwt.DecodeError:
         print("Errore nella decodifica del token.")
-        return True  # Se c'è un errore nella decodifica, assumi che il token sia scaduto
+        return True
 
 # Funzione per creare un nuovo client
 def create_oauth_client(access_token, client_data):
@@ -56,7 +50,7 @@ def create_oauth_client(access_token, client_data):
     try:
         response.raise_for_status()
         print(f"OAuth client created successfully")
-        return response.headers.get('Location').split('/')[-1]  # Get the ID of the created client
+        return response.headers.get('Location').split('/')[-1]
     except HTTPError as e:
         print(f"Failed to create OAuth client. Error: {e.response.text}")
         return None
@@ -95,21 +89,24 @@ def create_user(token, user, include_credit_card=False):
         response = requests.post(url, headers=headers, data=json.dumps(user_data))
         response.raise_for_status()
 
-        # Ottieni l'ID dell'utente appena creato
         location_header = response.headers.get("Location")
-        user_id = location_header.split('/')[-1]
+        user_id = location_header.split('/')[-1] if location_header else None
 
         return user_id, response.status_code
     
+    #scommentare a scopo di debug
     except requests.exceptions.HTTPError as e:
-        return None
+        #print(f"Errore nella creazione dell'utente: {e.response.text}")
+        return None, None
     except requests.exceptions.ConnectionError as e:
-        return None
+        #print(f"Errore di connessione: {e}")
+        return None, None
     except requests.exceptions.Timeout as e:
-        return None
+        #print(f"Timeout: {e}")
+        return None, None
     except requests.exceptions.RequestException as e:
-        return None
-
+        #print(f"Errore nella richiesta: {e}")
+        return None, None
     
 # Funzione per creare n utenti casuali
 def create_n_random_users(n, fake):
@@ -137,27 +134,23 @@ def create_n_random_users(n, fake):
     with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
         while created < n:
             user = generate_random_user_data(fake)
-            # Rinnova il token se necessario
             if token_scaduto(token):
                 token = get_token()
                 if not token:
                     print("Impossibile rinnovare il token di accesso.")
                     break
             
-            _, status_code = create_user(token, user, add_credit_card)
+            user_id, status_code = create_user(token, user, add_credit_card)
 
-            if status_code==201:
+            if status_code == 201:
                 created += 1
                 attempts = 0
                 pbar.update(1)
             else:
-                # Rimuovere le print commentate per eseguire debug
                 attempts += 1
                 if attempts >= max_attempts:
-                    #print(f"Massimo numero di tentativi raggiunto per l'utente {user.username}")
                     break
                 sleep_time = 0.1 ** attempts
-                #print(f"Ritentare dopo {sleep_time} secondi")
                 time.sleep(sleep_time)
 
     print(f"Utenti creati: {created}/{n}")
@@ -234,9 +227,16 @@ def create_group(access_token, group_name):
         return None
 
 # Funzione per assegnare un utente ad un gruppo
-def assign_user_to_group(access_token, user_id, group_id):
+def assign_user_to_group(token, user_id, group_id):
+
+    if token_scaduto(token):
+        token = get_token()
+        if not token:
+            print("Impossibile rinnovare il token di accesso.")
+            return
+
     assign_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}/groups/{group_id}"
-    headers = {'Authorization': f'Bearer {access_token}'}
+    headers = {'Authorization': f'Bearer {token}'}
     response = requests.put(assign_url, headers=headers)
     
     # Rimuovere le print commentate per eseguire debug
