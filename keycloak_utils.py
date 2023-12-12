@@ -62,14 +62,14 @@ def create_oauth_client(access_token, client_data):
         return None
 
 # Funzione per creare un nuovo utente
-def create_user(token, user):
+def create_user(token, user, include_credit_card=False):
     try:
         url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
-        data = {
+        user_data = {
             "username": user.username,
             "email": user.email,
             "enabled": True,
@@ -83,23 +83,33 @@ def create_user(token, user):
                 "Codice Fiscale": user.cf
             }
         }
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+
+        if include_credit_card:
+            card_number, expiration_date, cvv = generate_card_info_v2()
+            user_data["attributes"].update({
+                "CardNumber": card_number,
+                "ExpirationDate": expiration_date,
+                "CVV": cvv
+            })
+
+        response = requests.post(url, headers=headers, data=json.dumps(user_data))
         response.raise_for_status()
-        return response.status_code
+
+        # Ottieni l'ID dell'utente appena creato
+        location_header = response.headers.get("Location")
+        user_id = location_header.split('/')[-1]
+
+        return user_id, response.status_code
     
-    # Rimuovere le print commentate per eseguire debug
     except requests.exceptions.HTTPError as e:
-        #print(f"HTTP Error: {e}")
         return None
     except requests.exceptions.ConnectionError as e:
-        #print(f"Connection Error: {e}")
         return None
     except requests.exceptions.Timeout as e:
-        #print(f"Timeout Error: {e}")
         return None
     except requests.exceptions.RequestException as e:
-        #print(f"Errore Generico: {e}")
         return None
+
     
 # Funzione per creare n utenti casuali
 def create_n_random_users(n, fake):
@@ -127,7 +137,6 @@ def create_n_random_users(n, fake):
     with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
         while created < n:
             user = generate_random_user_data(fake)
-            user_id=user.username
             # Rinnova il token se necessario
             if token_scaduto(token):
                 token = get_token()
@@ -135,15 +144,11 @@ def create_n_random_users(n, fake):
                     print("Impossibile rinnovare il token di accesso.")
                     break
             
-            status_code = create_user(token, user)
+            _, status_code = create_user(token, user, add_credit_card)
 
-            if status_code == 201:
+            if status_code==201:
                 created += 1
                 attempts = 0
-                print(add_credit_card)
-                if add_credit_card:
-                    print("aaaa",add_credit_card,user_id)
-                    add_credit_card_data(user_id)
                 pbar.update(1)
             else:
                 # Rimuovere le print commentate per eseguire debug
@@ -244,22 +249,97 @@ def assign_user_to_group(access_token, user_id, group_id):
     
 def add_credit_card_data(user_id):
     token = get_token()
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return None
+
+    # Recupera i dati esistenti
+    get_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(get_url, headers=headers)
+    if response.status_code != 200:
+        print(f"Errore nel recupero dei dati dell'utente {user_id}")
+        return None
+    user_data = response.json()
+
+    # Aggiunge i dati della carta di credito
     card_number, expiration_date, cvv = generate_card_info_v2()
-    print(card_number, expiration_date, cvv)
-    update_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users/{user_id}"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    card_data = {
-        "attributes": {
-            "CardNumber": card_number,
-            "ExpirationDate": expiration_date,
-            "CVV": cvv
-        }
-    }
-    response = requests.put(update_url, headers=headers, json=card_data)
+    user_data["attributes"].update({
+        "CardNumber": card_number,
+        "ExpirationDate": expiration_date,
+        "CVV": cvv
+    })
+
+    # Aggiorna i dati dell'utente
+    update_headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    response = requests.put(get_url, headers=update_headers, json=user_data)
 
     try:
         response.raise_for_status()
-        print(f"Carta di credito aggiunta con successo all'utente {user_id}")
     except HTTPError as e:
         print(f"Errore nell'aggiungere la carta di credito all'utente {user_id}: {e.response.text}")
         return None
+    
+
+    # Funzione per creare n utenti casuali e assegnarli a un gruppo
+def create_n_random_users_and_assign_to_group(fake):
+    token = get_token()
+    try:
+        n = int(input("\nCon quanti utenti vuoi popolare il database: "))
+    except ValueError:
+        print("Numero non valido.")
+        return
+
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    # Crea un nuovo gruppo per questo batch di utenti
+    group_name = input("Inserisci il nome del nuovo gruppo: ")
+    group_id = create_group(token, group_name)
+    if group_id is None:
+        print(f"Impossibile creare il gruppo '{group_name}'.")
+        return
+
+    created = 0
+    attempts = 0
+    max_attempts = 5
+    continua=True
+    add_credit_card=False
+
+    while continua:
+        print("1. Aggiungi carta di credito")
+        print("0. Continua..")
+        scelta= input("Scegli un'opzione: ")
+        if add_credit_card==False:
+            add_credit_card = scelta == "1"
+        stop = scelta == "0"
+        if stop:
+            continua=False
+
+
+    with tqdm(total=n, desc="Creazione utenti", unit="utente") as pbar:
+        while created < n:
+            user = generate_random_user_data(fake)
+            if token_scaduto(token):
+                token = get_token()
+                if not token:
+                    print("Impossibile rinnovare il token di accesso.")
+                    break
+            
+            user_id, status_code = create_user(token, user, add_credit_card)
+
+            if status_code == 201:
+                assign_user_to_group(token, user_id, group_id)
+                created += 1
+                attempts = 0
+                pbar.update(1)
+            else:
+                attempts += 1
+                if attempts >= max_attempts:
+                    break
+                sleep_time = 0.1 ** attempts
+                time.sleep(sleep_time)
+
+    print(f"Utenti creati e assegnati al gruppo '{group_name}': {created}/{n}")
+

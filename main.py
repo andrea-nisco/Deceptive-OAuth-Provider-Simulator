@@ -128,6 +128,7 @@ def main_menu(fake):
     while True:
         clear_screen()  # Pulisce lo schermo all'inizio di ogni iterazione
         print("\nMenu:")
+        print("7. Crea n utenti casuali con gruppo")
         print("6. Crea un nuovo client OAuth in Keycloak")
         print("5. Verifica il numero utenti presenti nel database")
         print("4. Cancella n utenti casuali")
@@ -137,6 +138,9 @@ def main_menu(fake):
         print("0. Esci")
         print("\n")
         scelta = input("Inserisci la tua scelta: ")
+        
+        if scelta == "7":
+            create_n_random_users_and_assign_to_group(fake)
 
         if scelta == "6":
             create_oauth_client_menu()
