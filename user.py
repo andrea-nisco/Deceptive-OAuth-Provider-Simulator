@@ -26,7 +26,7 @@ def input_user_data():
     while True:
         birth_date_input = input("Inserisci data di nascita (gg/mm/aaaa): ")
         try:
-            birth_date = datetime.datetime.strptime(birth_date_input, "%d/%m/%Y").strftime("%d/%m/%Y")
+            birth_date = datetime.strptime(birth_date_input, "%d/%m/%Y").strftime("%d/%m/%Y")
             break
         except ValueError:
             print("Formato data non valido. Riprova.")
