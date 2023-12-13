@@ -46,14 +46,17 @@ def create_oauth_client(access_token, client_data):
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-    response = requests.post(client_url, json=client_data, headers=headers)
+
+    #scommentare per debug
     try:
-        #scommentare print per debug
+        response = requests.post(client_url, json=client_data, headers=headers)
         response.raise_for_status()
-        #print(f"OAuth client created successfully")
         return response.headers.get('Location').split('/')[-1]
     except HTTPError as e:
-        #print(f"Failed to create OAuth client. Error: {e.response.text}")
+        #print(f"Failed to create OAuth client. HTTP Error: {e.response.status_code}, Response: {e.response.text}")
+        return None
+    except Exception as e:
+        #print(f"General Exception: {str(e)}")
         return None
 
 def create_role():

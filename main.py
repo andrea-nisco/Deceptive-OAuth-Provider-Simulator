@@ -65,36 +65,40 @@ def create_oauth_client_menu():
         return
 
     # Raccogli i dati necessari dall'utente
-    #client_name = input("Inserisci il nome del client: ")
-    #redirect_uri = input("Inserisci l'URI di reindirizzamento del client: ")
-    #client_root_url = input("Inserisci l'URL di base del client: ")
-    #client_type = input("Inserisci il tipo di client (public/confidential): ").lower()
+    client_name = input("Inserisci il nome del client: ")
+    redirect_uri = input("Inserisci l'URI di reindirizzamento del client: ")
+    client_root_url = input("Inserisci l'URL di base del client: ")
+    client_type = input("Inserisci il tipo di client (public/confidential): ").lower()
+
+    is_public = client_type == 'public'
 
     # Crea un dizionario con i dati del client
     client_data = {
-        'clientId': 'test-client',
+        'clientId': client_name,
         'enabled': True,
-        'publicClient': False,
-        'redirectUris': ['http://localhost:3000/*'],
-        'webOrigins': ['http://localhost:3000/'],
+        'publicClient': is_public,
+        'redirectUris': [redirect_uri],
+        'webOrigins': [client_root_url],
         'protocol': 'openid-connect',
         'standardFlowEnabled': True,  # Per il flusso di autorizzazione standard
         'implicitFlowEnabled': False,  # Impostare su True se necessario
         'directAccessGrantsEnabled': True,  # Per l'autenticazione diretta
         'serviceAccountsEnabled': False,  # Impostare su True se il client ha bisogno di un account di servizio
         'attributes': {
-            'pkce.code.challenge.method': 'S256'
+            'pkce.code.challenge.method': 'S256',
+            'oauth2.device.authorization.grant.enabled': 'true'
         },
-        # Altre configurazioni...
     }
 
     # Chiama la funzione per creare il client
-    client_id = create_oauth_client(token, client_data)
-
-    if client_id:
-        print(f"Client OAuth creato con successo. ID Client: {client_id}")
-    else:
-        print("Errore nella creazione del client OAuth.")
+    try:
+        client_id = create_oauth_client(token, client_data)
+        if client_id:
+            print(f"Client OAuth creato con successo. ID Client: {client_id}")
+        else:
+            print("Errore nella creazione del client OAuth. Nessuna risposta dal server.")
+    except Exception as e:
+        print(f"Errore nella creazione del client OAuth: {str(e)}")
 
 # Funzione per creare gruppi e assegnare utenti in modo casuale
 def create_groups_and_assign_users(group_names, num_users_to_assign):
