@@ -27,7 +27,11 @@ def delete_random_users(fake):
         print("Impossibile ottenere il token di accesso.")
         return
 
+    print("Recupero del numero di utenti in corso...")
     all_users = get_all_users(token)
+    total_users = len(all_users)
+    print(f"Numero totale di utenti nel database: {total_users}")
+    
     if not all_users:
         print("Nessun utente trovato.")
         return
@@ -39,6 +43,12 @@ def delete_random_users(fake):
 
     with tqdm(total=num_users_to_delete, desc="Cancellazione utenti", unit="utente") as pbar:
         for _ in range(num_users_to_delete):
+            if token_scaduto(token):
+                token = get_token()
+                if not token:
+                    print("Impossibile rinnovare il token di accesso.")
+                    break
+
             user_to_delete = random.choice(all_users)
             delete_user(token, user_to_delete['id'])
             all_users.remove(user_to_delete)
@@ -128,6 +138,8 @@ def main_menu(fake):
     while True:
         clear_screen()  # Pulisce lo schermo all'inizio di ogni iterazione
         print("\nMenu:")
+        print("9. Assegna un gruppo ad un ruolo")
+        print("8. Crea un ruolo")
         print("7. Crea n utenti casuali con gruppo")
         print("6. Crea un nuovo client OAuth in Keycloak")
         print("5. Verifica il numero utenti presenti nel database")
@@ -138,16 +150,28 @@ def main_menu(fake):
         print("0. Esci")
         print("\n")
         scelta = input("Inserisci la tua scelta: ")
+
+        if scelta == "9":
+            group_name = input("Inserisci nome gruppo che vuoi aggiungere: ")
+            role_name = input("Inserisci nome ruolo che vuoi assegnare al gruppo: ")
+
+            group_id = get_group_id(group_name)
+            if group_id:
+                assign_group_to_role(group_id, role_name)
+
+        elif scelta == "8":
+            create_role()
         
-        if scelta == "7":
+        elif scelta == "7":
             create_n_random_users_and_assign_to_group(fake)
 
-        if scelta == "6":
+        elif scelta == "6":
             create_oauth_client_menu()
 
         elif scelta == "5":
             token = get_token()
             if token:
+                print("Recupero del numero di utenti in corso...")
                 all_users = get_all_users(token)
                 total_users = len(all_users)
                 print(f"Numero totale di utenti nel database: {total_users}")

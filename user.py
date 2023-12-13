@@ -31,7 +31,7 @@ def input_user_data():
         except ValueError:
             print("Formato data non valido. Riprova.")
 
-    gender = input("Inserisci genere: ")
+    gender = input("Inserisci genere (M/F): ")
     birth_place = input("Inserisci luogo di nascita: ")
     cf = input("Inserisci codice fiscale: ")
 

@@ -48,11 +48,91 @@ def create_oauth_client(access_token, client_data):
     }
     response = requests.post(client_url, json=client_data, headers=headers)
     try:
+        #scommentare print per debug
         response.raise_for_status()
-        print(f"OAuth client created successfully")
+        #print(f"OAuth client created successfully")
         return response.headers.get('Location').split('/')[-1]
     except HTTPError as e:
-        print(f"Failed to create OAuth client. Error: {e.response.text}")
+        #print(f"Failed to create OAuth client. Error: {e.response.text}")
+        return None
+
+def create_role():
+    token = get_token()
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    role_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/roles"
+
+    # Richiesta nome del ruolo e descrizione
+    role_name = input("Inserisci il nome del ruolo: ")
+    description = input("Inserisci una descrizione per il ruolo (opzionale): ")
+
+    data = {
+        "name": role_name,
+        "description": description
+    }
+
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.post(role_url, headers=headers, json=data)
+    if response.status_code == 201:
+        print(f"Ruolo '{role_name}' creato con successo.")
+        return True
+    else:
+        print(f"Errore nella creazione del ruolo: {response.text}")
+        return False
+
+def assign_group_to_role(group_id, role_name):
+    token = get_token()
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    # Ottenere l'ID del ruolo
+    role_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/roles/{role_name}"
+    headers = {'Authorization': f'Bearer {token}'}
+    role_response = requests.get(role_url, headers=headers)
+    if role_response.status_code != 200:
+        print(f"Impossibile ottenere l'ID del ruolo '{role_name}'.")
+        return False
+
+    role_id = role_response.json()['id']
+
+    # Assegnare il gruppo al ruolo
+    assign_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/groups/{group_id}/role-mappings/realm"
+    data = [{"id": role_id, "name": role_name}]
+
+    response = requests.post(assign_url, headers=headers, json=data)
+    if response.status_code == 204:
+        print(f"Gruppo '{group_id}' assegnato al ruolo '{role_name}' con successo.")
+        return True
+    else:
+        print(f"Errore nell'assegnazione del gruppo al ruolo: {response.text}")
+        return False
+
+def get_group_id(group_name):
+    token = get_token()
+    if not token:
+        print("Impossibile ottenere il token di accesso.")
+        return
+
+    group_url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/groups"
+    headers = {'Authorization': f'Bearer {token}'}
+
+    response = requests.get(group_url, headers=headers)
+    if response.status_code == 200:
+        groups = response.json()
+        for group in groups:
+            if group['name'] == group_name:
+                return group['id']
+        print(f"Gruppo '{group_name}' non trovato.")
+        return None
+    else:
+        print(f"Errore nella richiesta: {response.text}")
         return None
 
 # Funzione per creare un nuovo utente
