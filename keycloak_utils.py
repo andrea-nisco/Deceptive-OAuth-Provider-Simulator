@@ -139,7 +139,7 @@ def get_group_id(group_name):
         return None
 
 # Funzione per creare un nuovo utente
-def create_user(token, user, include_credit_card=False):
+def create_user(fake, token, user, include_credit_card=False, include_add_number=False, include_civis=False, include_fgaseluce=False, include_ftelefonico=False, include_residenza=False):
     try:
         url = f"{KEYCLOAK_URL}/admin/realms/{KEYCLOAK_REALM}/users"
         headers = {
@@ -161,11 +161,41 @@ def create_user(token, user, include_credit_card=False):
             }
         }
 
+        if include_residenza:
+            residenza = generate_residenza(fake)
+            user_data["attributes"].update({
+                "Indirizzo di residenza": residenza
+            })
+
+        if include_ftelefonico:
+            ftelefonico = generate_ftelefonico()
+            user_data["attributes"].update({
+                "Fornitore telefonico": ftelefonico
+            })
+
+        if include_fgaseluce:
+            fgaseluce = generate_fgaseluce()
+            user_data["attributes"].update({
+                "Fornitore gas e luce": fgaseluce
+            })
+
+        if include_civis:
+            civis = generate_civis()
+            user_data["attributes"].update({
+                "Stato Civile": civis
+            })
+
+        if include_add_number:
+            phone_number = generate_phone_number()
+            user_data["attributes"].update({
+                "Numero di telefono": phone_number
+            })
+
         if include_credit_card:
             card_number, expiration_date, cvv = generate_card_info_v2()
             user_data["attributes"].update({
-                "CardNumber": card_number,
-                "ExpirationDate": expiration_date,
+                "Numero carta di credito": card_number,
+                "Scadenza carta di credito": expiration_date,
                 "CVV": cvv
             })
 
@@ -203,11 +233,31 @@ def create_n_random_users(n, fake):
     max_attempts = 5
     continua=True
     add_credit_card=False
+    add_number=False
+    civis=False
+    fgaseluce=False
+    ftelefonico=False
+    residenza=False
 
     while continua:
+        print("6. Aggiungi residenza")
+        print("5. Aggiungi fornitore telefonico")
+        print("4. Aggiungi fornitore gas e luce")
+        print("3. Aggiungi stato civile")
+        print("2. Aggiungi numero di telefono")
         print("1. Aggiungi carta di credito")
-        print("0. Continua..")
+        print("0. Continua..\n")
         scelta= input("Scegli un'opzione: ")
+        if residenza==False:
+            residenza = scelta == "6"
+        if ftelefonico==False:
+            ftelefonico = scelta == "5"
+        if fgaseluce==False:
+            fgaseluce = scelta == "4"
+        if civis==False:
+            civis = scelta == "3"
+        if add_number==False:
+            add_number = scelta == "2"
         if add_credit_card==False:
             add_credit_card = scelta == "1"
         stop = scelta == "0"
@@ -223,7 +273,7 @@ def create_n_random_users(n, fake):
                     print("Impossibile rinnovare il token di accesso.")
                     break
             
-            user_id, status_code = create_user(token, user, add_credit_card)
+            user_id, status_code = create_user(fake, token, user, add_credit_card, add_number, civis, fgaseluce, ftelefonico, residenza)
 
             if status_code == 201:
                 created += 1
@@ -389,11 +439,31 @@ def create_n_random_users_and_assign_to_group(fake):
     max_attempts = 5
     continua=True
     add_credit_card=False
+    add_number=False
+    civis=False
+    fgaseluce=False
+    ftelefonico=False
+    residenza=False
 
     while continua:
+        print("6. Aggiungi residenza")
+        print("5. Aggiungi fornitore telefonico")
+        print("4. Aggiungi fornitore gas e luce")
+        print("3. Aggiungi stato civile")
+        print("2. Aggiungi numero di telefono")
         print("1. Aggiungi carta di credito")
-        print("0. Continua..")
+        print("0. Continua..\n")
         scelta= input("Scegli un'opzione: ")
+        if residenza==False:
+            residenza = scelta == "6"
+        if ftelefonico==False:
+            ftelefonico = scelta == "5"
+        if fgaseluce==False:
+            fgaseluce = scelta == "4"
+        if civis==False:
+            civis = scelta == "3"
+        if add_number==False:
+            add_number = scelta == "2"
         if add_credit_card==False:
             add_credit_card = scelta == "1"
         stop = scelta == "0"
@@ -410,7 +480,7 @@ def create_n_random_users_and_assign_to_group(fake):
                     print("Impossibile rinnovare il token di accesso.")
                     break
             
-            user_id, status_code = create_user(token, user, add_credit_card)
+            user_id, status_code = create_user(fake, token, user, add_credit_card, add_number, civis, fgaseluce, ftelefonico, residenza)
 
             if status_code == 201:
                 assign_user_to_group(token, user_id, group_id)

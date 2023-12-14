@@ -37,16 +37,10 @@ def input_user_data():
 
     return User(username, email, password, first_name, last_name, birth_date, gender, birth_place, cf)
 
-def generate_username(first_name, last_name, birth_date, fake):
+def generate_username(first_name, last_name, birth_date, random_book_title, random_game, random_color, random_city, random_country, fake):
     birth_year = birth_date.strftime("%Y")
     birth_month_day = birth_date.strftime("%m%d")
-    random_book_title = fake.word().lower()
-    random_game = fake.word().lower()
-    random_color = fake.color_name().lower().replace(" ", "")
-    random_city = fake.city().lower().replace(" ", "")
-    random_country = fake.country().lower().replace(" ", "")
 
-    # Definisci 30 strategie diverse per la creazione dell'username
     strategies = [
         lambda: f"{first_name}.{last_name}",
         lambda: f"{last_name}_{first_name}",
@@ -74,8 +68,6 @@ def generate_username(first_name, last_name, birth_date, fake):
         lambda: f"{random_city[0:3]}{birth_month_day}",
         lambda: f"{random_country[0:3]}_{first_name}"
     ]
-
-    # Scegli una strategia in modo casuale e applicala
     return random.choice(strategies)()
 
 def pad_string(string, length):
@@ -133,11 +125,18 @@ def generate_random_user_data(fake):
     gender = random.choice(["M", "F"])
     birth_place = fake.city()
 
+    # Generazione dati per la creazione dell'username
+    random_book_title = fake.word().lower()
+    random_game = fake.word().lower()
+    random_color = fake.color_name().lower().replace(" ", "")
+    random_city = fake.city().lower().replace(" ", "")
+    random_country = fake.country().lower().replace(" ", "")
+
     # Genera il codice fiscale
     cf = genera_codice_fiscale(last_name, first_name, gender, birth_date.strftime("%d/%m/%Y"), birth_place)
 
     # Genera l'username per l'account
-    account_username = generate_username(first_name, last_name, birth_date, fake) + str(random.randint(10, 99))
+    account_username = generate_username(first_name, last_name, birth_date, random_book_title, random_game, random_color, random_city, random_country, fake)
 
     # Dizionario di provider di email fittizi
     fake_email_providers = [
@@ -150,7 +149,7 @@ def generate_random_user_data(fake):
 ]
 
     # Genera l'username per l'email
-    email_username = generate_username(first_name, last_name, birth_date, fake) + str(random.randint(10, 99))
+    email_username = generate_username(first_name, last_name, birth_date, random_book_title, random_game, random_color, random_city, random_country, fake)
     email_provider = random.choice(fake_email_providers)
     email = f"{email_username}@{email_provider}"
 
@@ -179,3 +178,69 @@ def generate_card_info_v2():
     cvv = ''.join([str(random.randint(0, 9)) for _ in range(3)])
 
     return card_number, expiration_date, cvv
+
+def generate_phone_number():
+    parte_centrale = random.randint(100000000, 999999999)
+    numero_telefono = f"+39 3{parte_centrale:09d}"
+    return numero_telefono
+
+def generate_civis():
+    stato_civile_italia = [
+        'Celibe',
+        'Coniugato',
+        'Separato',
+        'Divorziato',
+        'Vedovo',
+        'Unione civile',
+        'Separato legalmente',
+        'Convivente',
+        'Altro'
+    ]
+    civis = random.choice(stato_civile_italia)
+    return civis
+
+def generate_fgaseluce():
+    fornitori_luce_gas_italia = [
+        'Enel Energia',
+        'Eni gas e luce',
+        'A2A Energia',
+        'Iren Energia',
+        'EDISON Energia',
+        'AcegasAps Amga',
+        'Illumia',
+        'EOLO',
+        'Gas Natural Fenosa',
+        'E.ON Energia',
+        'Hera Comm',
+        'Sorgenia',
+        'Estra',
+        'Alperia',
+        'Energia 3',
+        'Energas',
+        'Fri-El Gas',
+        'Green Network Energy',
+        'Gruppo Maggioli',
+        'Open Fiber',
+]
+    fgaseluce = random.choice(fornitori_luce_gas_italia)
+    return fgaseluce
+
+def generate_ftelefonico():
+    fornitori_rete_cellulare_italia = [
+        'TIM',
+        'Vodafone',
+        'WindTre',
+        'Iliad',
+        'PosteMobile',
+        'Fastweb',
+        'KenaMobile',
+        'Lycamobile',
+        'CoopVoce',
+        'NOISIM'
+]
+    fgaseluce = random.choice(fornitori_rete_cellulare_italia)
+    return fgaseluce
+
+def generate_residenza(fake):
+    indirizzo = f"{fake.random_element(elements=('via', 'contrada', 'viale', 'piazza', 'largo'))} {fake.word()}, {random.randint(0, 100)}, {fake.city()}, {random.randint(10000, 99999)}"
+    return indirizzo
