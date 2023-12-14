@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 # Installa OpenJDK 17, wget, file, PostgreSQL, Python e pulisce la cache
-RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip curl
+RUN apk add --no-cache openjdk17 wget file postgresql postgresql-client python3 py3-pip curl openssl
 
 # Crea un ambiente virtuale Python e installa i pacchetti necessari
 RUN python3 -m venv /opt/venv && \

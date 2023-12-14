@@ -3,6 +3,15 @@
 # Percorsi dei file per memorizzare le credenziali
 ADMIN_CREDENTIALS_FILE="/opt/keycloak-23.0.1/credentials/admin_credentials.txt"
 
+# Chiedi la chiave di cifratura all'utente
+echo "Inserisci la chiave di cifratura:"
+read -s ENCRYPTION_KEY
+
+# Controlla se il file delle credenziali esiste e decifrane il contenuto
+if [ -f "$ADMIN_CREDENTIALS_FILE" ]; then
+    read KEYCLOAK_ADMIN KEYCLOAK_ADMIN_PASSWORD < <(openssl enc -aes-256-cbc -d -a -pbkdf2 -iter 10000 -in $ADMIN_CREDENTIALS_FILE -pass pass:$ENCRYPTION_KEY)
+fi
+
 # Controlla e crea il volume per PostgreSQL se non esiste
 if [ ! -d "/var/lib/postgresql/data" ]; then
     mkdir -p /var/lib/postgresql/data > /dev/null 2>&1
@@ -28,18 +37,14 @@ until su postgres -c "pg_isready -d keycloak"; do
 done
 
 # Verifica se le credenziali di amministratore esistono
-if [ -f "$ADMIN_CREDENTIALS_FILE" ]; then
-    # Legge le credenziali salvate
-    read KEYCLOAK_ADMIN KEYCLOAK_ADMIN_PASSWORD < $ADMIN_CREDENTIALS_FILE
-    echo "Utilizzo delle credenziali di amministratore esistenti."
-else
+if [ ! -f "$ADMIN_CREDENTIALS_FILE" ]; then
     # Chiede all'utente di inserire le credenziali
-    read -p "Enter admin username: " KEYCLOAK_ADMIN
-    read -s -p "Enter admin password: " KEYCLOAK_ADMIN_PASSWORD
+    read -p "Inserire admin username (will be saved encrypted): " KEYCLOAK_ADMIN
+    read -s -p "Inserire admin password (will be saved encrypted): " KEYCLOAK_ADMIN_PASSWORD
     echo
 
-    # Salva le credenziali per i successivi avvii
-    echo $KEYCLOAK_ADMIN $KEYCLOAK_ADMIN_PASSWORD > $ADMIN_CREDENTIALS_FILE
+    # Cifra e salva le credenziali per i successivi avvii
+    echo "$KEYCLOAK_ADMIN $KEYCLOAK_ADMIN_PASSWORD" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -pass pass:$ENCRYPTION_KEY > $ADMIN_CREDENTIALS_FILE
     chmod 600 $ADMIN_CREDENTIALS_FILE
 
     # Configura il database per Keycloak
@@ -48,6 +53,9 @@ else
     su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH ENCRYPTED PASSWORD '$KEYCLOAK_ADMIN_PASSWORD';\"" > /dev/null 2>&1
     su postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE keycloak TO $KEYCLOAK_ADMIN;\"" > /dev/null 2>&1
     su postgres -c "psql -c \"ALTER USER $KEYCLOAK_ADMIN WITH SUPERUSER;\"" > /dev/null 2>&1
+else
+    # Legge le credenziali salvate e le decifra
+    openssl enc -aes-256-cbc -d -a -pbkdf2 -iter 10000 -in $ADMIN_CREDENTIALS_FILE -pass pass:$ENCRYPTION_KEY | read KEYCLOAK_ADMIN KEYCLOAK_ADMIN_PASSWORD
 fi
 
 export KEYCLOAK_ADMIN 
@@ -63,8 +71,12 @@ while ! nc -z localhost 8080; do
 done
 
 # Verifica delle credenziali prima di eseguire main.py
-read -p "Enter your admin username to continue: " INPUT_ADMIN
-read -s -p "Enter your admin password to continue: " INPUT_ADMIN_PASSWORD
+
+#read -p "Verify your admin username to start the service: " INPUT_ADMIN
+read -p "Verifica il tuo admin username per avviare il servizio: " INPUT_ADMIN
+#read -s -p "Verify your admin password to start the service: " INPUT_ADMIN_PASSWORD
+read -s -p "Verifica la tua admin password per avviare il servizio: " INPUT_ADMIN_PASSWORD
+
 echo
 
 if [ "$INPUT_ADMIN" = "$KEYCLOAK_ADMIN" ] && [ "$INPUT_ADMIN_PASSWORD" = "$KEYCLOAK_ADMIN_PASSWORD" ]; then
