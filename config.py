@@ -1,7 +1,7 @@
 import os
 
 # Configura l'URL del server Keycloak
-KEYCLOAK_URL = "http://0.0.0.0:8080"  # Assicurati che questo indirizzo sia corretto
+KEYCLOAK_URL = "http://0.0.0.0:8080"  
 KEYCLOAK_REALM = "master"
 KEYCLOAK_CLIENT_ID = "admin-cli"
 KEYCLOAK_GRANT_TYPE = "password"

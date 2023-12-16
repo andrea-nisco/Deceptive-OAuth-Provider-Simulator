@@ -1,4 +1,4 @@
-# docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data -v keycloak_creds:/opt/keycloak-23.0.1/credentials test -v
+#docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data -v keycloak_creds:/opt/keycloak-23.0.1/credentials test -v
 
 from faker import Faker
 from tqdm import tqdm
@@ -52,14 +52,14 @@ def delete_random_users(fake):
             user_to_delete = random.choice(all_users)
             delete_user(token, user_to_delete['id'])
             all_users.remove(user_to_delete)
-            pbar.update(1)  # Aggiorna la barra di progressione
+            pbar.update(1)  
 
     print(f"Totale utenti cancellati: {num_users_to_delete}")
 
 def create_oauth_client_menu():
     print("\nCreazione di un nuovo client OAuth in Keycloak.")
 
-    token = get_token()  # Assicurati che questa funzione restituisca un token valido
+    token = get_token()  
     if not token:
         print("Impossibile ottenere il token di accesso.")
         return
@@ -117,7 +117,6 @@ def create_groups_and_assign_users(group_names, num_users_to_assign):
     if users is None:
         return
 
-    # Assicurati che il numero di utenti da assegnare non sia maggiore del totale disponibile
     num_users_to_assign = min(num_users_to_assign, len(users))
 
     # Mescola casualmente la lista degli utenti
@@ -137,10 +136,9 @@ def create_groups_and_assign_users(group_names, num_users_to_assign):
     for group_name, count in group_distribution.items():
         print(f"{group_name}: {count} utenti")
 
-# Funzione per mostrare il menu e gestire le scelte dell'utente
 def main_menu(fake):
     while True:
-        clear_screen()  # Pulisce lo schermo all'inizio di ogni iterazione
+        clear_screen()  
         print("\nMenu:")
         print("9. Assegna un gruppo ad un ruolo")
         print("8. Crea un ruolo")
@@ -235,5 +233,5 @@ def main_menu(fake):
 # Esecuzione del menu principale
 if __name__ == "__main__":
     fake = Faker('it_IT')
-    clear_screen()  # Pulisce lo schermo prima di mostrare il menu la prima volta
+    clear_screen() 
     main_menu(fake)

@@ -1,8 +1,8 @@
-import requests  # Per eseguire richieste HTTP a Keycloak
-from requests.exceptions import HTTPError  # Per gestire le eccezioni HTTP
-import jwt  # Libreria PyJWT per la decodifica dei token JWT
-import time  # Per gestire il tempo (es. confrontare timestamp)
-import json  # Per la serializzazione/deserializzazione dei dati JSON
+import requests  
+from requests.exceptions import HTTPError  
+import jwt  
+import time  
+import json  
 from tqdm import tqdm
 
 import time
