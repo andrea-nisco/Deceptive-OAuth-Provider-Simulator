@@ -1,6 +1,6 @@
-# Deceptive-OAuth-Provider-Simulator
+# Deceptive-OAuth-Generator-Component
 
-Welcome to the "Deceptive OAuth Provider Simulator." This project is an advanced cybersecurity initiative developed to safeguard real-world assets by redirecting potential attackers to a fabricated OAuth2.0 provider. Created as a key component of a master's program, this tool functions as an effective digital honeypot, strategically misleading adversaries.
+Welcome to the "Deceptive OAuth Generator Component." This project is an advanced cybersecurity initiative developed to safeguard real-world assets by redirecting potential attackers to a fabricated OAuth2.0 provider. Created as a key component of a master's program, this tool functions as an effective digital honeypot, strategically misleading adversaries.
 
 ## Getting Started
 
