@@ -50,6 +50,13 @@ Follow these steps to build and deploy the simulator.
    ```
    docker run -it -p 8080:8080 -v pgdata:/var/lib/postgresql/data -v keycloakdata:/opt/keycloak-23.0.1/standalone/data -v keycloak_creds:/opt/keycloak-23.0.1/credentials test -v
    ```
+
+### Running the container
+
+After running the Docker container, it is essential to insert a SHA-256 key. The key should be in the following format:
+```
+3E23E8160039594A33894F6564E1B134BA26B06EB375FE8C53B09EFA1AEB9B2E
+```
 ## Conclusion
 
 The Deceptive OAuth Provider Simulator is now fully operational. It stands ready to serve as an advanced tool in your cybersecurity arsenal.
