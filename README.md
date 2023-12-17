@@ -55,7 +55,7 @@ Follow these steps to build and deploy the simulator.
 
 After running the Docker container, it is essential to insert a SHA-256 key. The key should be in the following format:
 ```
-3E23E8160039594A33894F6564E1B134BA26B06EB375FE8C53B09EFA1AEB9B2E
+d08ea33714ce82e5632ad43d778c750d881f1c10fd2501aa9f08aefaa05ef791
 ```
 ## Conclusion
 
