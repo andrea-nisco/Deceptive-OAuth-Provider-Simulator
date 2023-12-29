@@ -82,7 +82,7 @@ echo
 if [ "$INPUT_ADMIN" = "$KEYCLOAK_ADMIN" ] && [ "$INPUT_ADMIN_PASSWORD" = "$KEYCLOAK_ADMIN_PASSWORD" ]; then
     # Attiva l'ambiente virtuale prima di eseguire main.py
     . /opt/venv/bin/activate
-    python /main.py
+    python /app/main.py  # Aggiornato per riflettere il nuovo percorso
     deactivate
 else
     # Credenziali errate, non eseguire main.py

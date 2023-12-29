@@ -20,13 +20,17 @@ RUN mkdir -p /run/postgresql && chown -R postgres:postgres /run/postgresql && \
     mkdir -p /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql/data
 
 # Copia i file necessari nell'immagine
-COPY entrypoint.sh main.py keycloak_utils.py user.py config.py /
+COPY ./app/*.py /app/
 
 # Assegna i permessi di esecuzione allo script entrypoint.sh
+COPY entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 
 # Espone la porta 8080 per Keycloak
 EXPOSE 8080
+
+# Imposta la directory di lavoro (opzionale)
+WORKDIR /app
 
 # Imposta lo script entrypoint.sh come punto di ingresso
 ENTRYPOINT ["/entrypoint.sh"]
